@@ -1,0 +1,6 @@
+pandas
+transformers
+ftfy
+tqdm
+regex
+git+https://github.com/openai/CLIP.git
