@@ -1,5 +1,4 @@
 from pathlib import Path
-
 import pandas as pd
 
 
@@ -10,4 +9,3 @@ lego_bricks = pd.read_pickle(DATASET_PATH / "lego_bricks.pkl")
 
 img_text_pairs = lego_bricks[["img_url", "part_name"]].dropna()
 
-print(img_text_pairs.head())
