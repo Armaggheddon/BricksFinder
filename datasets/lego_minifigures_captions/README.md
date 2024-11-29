@@ -1,32 +1,15 @@
----
-license: mit
-dataset_info:
-  features:
-  - name: fig_num
-    dtype: string
-  - name: image
-    dtype: image
-  - name: short_caption
-    dtype: string
-language:
-- en
-tags:
-- lego
-- minifigures
-size_categories:
-- 10K<n<100K
----
-
 # LEGO Minifigure Captions
 
-The **LEGO Minifigure Captions** dataset contains 12966 images of LEGO minifigures with captions. Each image is accompanied by a caption that describes the minifigure in the image. The dataset contains the following columns:
+The **LEGO Minifigure Captions** dataset contains 12966 images of LEGO minifigures with captions. The dataset contains the following columns:
 - `fig_num`: The figure number of the minifigure as in the original csv file from Rebrickable.
 - `image`: The jpeg image of the minifigure in the format `{"bytes": bytes, "path": str}` so that can be interpreted as `PIL.Image` objects in the huggingface `datasets` library.
 - `short_caption`: The short caption describing the minifigure in the image.
 - **COMING** `caption`: The caption describing the minifigure which is generated using Gemini-1.5-flash.
 
-The data has been collected from the [Rebrickable](https://rebrickable.com/downloads/) website and the images have been downloaded from the column `img_url` in original *minifigures.csv* file from the website. 
+The data has been collected from the [Rebrickable](https://rebrickable.com/downloads/) website and the images have been downloaded from the column `img_url` in original *minifigs.csv* file from the website. 
 
+> [!NOTE]
+> The total number of minifigures in `minifigs.csv` are 14985, but only 12966 images were downloaded due to some images not being available.
 
 *The data was downloaded from the Rebrickable website on 27 November 2024.*
 
@@ -34,7 +17,6 @@ The data has been collected from the [Rebrickable](https://rebrickable.com/downl
 Again a massive shoutout and thanks goes to the [Rebrickable](https://rebrickable.com/) team for providing all the data and images for the LEGO minifigures, and more!
 
 > [!TIP]
-> For more details check out the [BricksFinder GitHub repository](https://github.com/Armaggheddon/BricksFinder) where you can find the code used to create this dataset and more.
 > This dataset is also available on the [Hugging Face Datasets Hub](https://huggingface.co/datasets/armaggheddon97/lego_minifigure_captions).
 
 ## Usage with pandas
