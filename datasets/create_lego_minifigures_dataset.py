@@ -10,10 +10,23 @@ from PIL import Image
 import tqdm
 
 
-DOWNLOAD_IMAGES = False
+# Download the original CSVs from rebrickable.
+# Note that the same data, is already available
+# as parquet files in the raw_data folder
+# and was downloaded on 27 November 2024.
 DOWNLOAD_CSVS = False
-CREATE_PARQUET = True
-CREATE_ZIP = True
+CREATE_ROOT_PARQUET = False
+# Note that the images for this dataset are
+# roughly 13k images. This will take time
+# and space to download. Consider using 
+# the images in the huggingface dataset instead.
+DOWNLOAD_IMAGES = False
+CREATE_PARQUET = False
+# Create a zip file with the final dataset
+# parquet files ready to be uploaded to the hub. 
+# The zip file can be omitted if not using a remote
+# headless machine to upload the dataset.
+CREATE_ZIP = False
 
 THIS_PATH = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -25,12 +38,14 @@ DATASET_PARQUET_PATH = MINIFIGURES_DATASET_ROOT / "data"
 MINIFIGS_CSV = {
     "url": "https://cdn.rebrickable.com/media/downloads/minifigs.csv.gz?1732432083.3254244",
     "zip_filename": "minifigs.csv.gz",
-    "filename": "minifigs.csv"
+    "filename": "minifigs.csv",
+    "parquet_filename": "minifigs.parquet"
 }
 INVENTORY_MINIFIGS_CSV = {
     "url": "https://cdn.rebrickable.com/media/downloads/inventory_minifigs.csv.gz?1732432105.8860035",
     "zip_filename": "inventory_minifigs.csv.gz",
-    "filename": "inventory_minifigs.csv"
+    "filename": "inventory_minifigs.csv",
+    "parquet_filename": "inventory_minifigs.parquet"
 }
 
 
@@ -48,6 +63,20 @@ def download_dataset(download_path: Path):
         download_path / INVENTORY_MINIFIGS_CSV["zip_filename"]
     )
     logger.success(f"Downloaded: {INVENTORY_MINIFIGS_CSV['zip_filename']}")
+
+def convert_csv_to_parquet(raw_data_root: Path):
+    minifigs = pd.read_csv(raw_data_root / MINIFIGS_CSV["filename"])
+    inventory_minifigs = pd.read_csv(raw_data_root / INVENTORY_MINIFIGS_CSV["filename"])
+
+    logger.success(f"Loaded all CSVs")
+
+    minifigs.to_parquet(
+        raw_data_root / MINIFIGS_CSV["parquet_filename"])
+    inventory_minifigs.to_parquet(
+        raw_data_root / INVENTORY_MINIFIGS_CSV["parquet_filename"])
+    
+    logger.success(f"Saved all parquet files")
+
 
 def unzip_csv_files(files: list[Path]):
     # unzipping transforms the filename
@@ -76,11 +105,12 @@ def download_images(dataframe: pd.DataFrame, download_path: Path):
                 logger.error(f"Error: {e}")
                 curr_retries += 1
 
-def create_dataframe():  
-    minifigs = pd.read_csv( RAW_DATA_ROOT / MINIFIGS_CSV["filename"],)
+def create_root_parquet():  
+    minifigs = pd.read_parquet( RAW_DATA_ROOT / MINIFIGS_CSV["parquet_filename"],)
     logger.info(f"Loaded: {MINIFIGS_CSV['filename']}")
-    inventory_minifigs = pd.read_csv(RAW_DATA_ROOT / INVENTORY_MINIFIGS_CSV["filename"])
+    inventory_minifigs = pd.read_csv(RAW_DATA_ROOT / INVENTORY_MINIFIGS_CSV["parquet_filename"])
     logger.info(f"Loaded: {INVENTORY_MINIFIGS_CSV['filename']}")
+    
     result_df = minifigs.copy()
     result_df["inventory_id"] = minifigs["fig_num"].apply(
         lambda x: inventory_minifigs[inventory_minifigs["fig_num"] == x]["inventory_id"].tolist()
@@ -188,6 +218,7 @@ if __name__ == "__main__":
     logger.info("Starting dataset creation with options:")
     logger.info(f"DOWNLOAD_IMAGES: {DOWNLOAD_IMAGES}")
     logger.info(f"DOWNLOAD_CSVS: {DOWNLOAD_CSVS}")
+    logger.info(f"CREATE_ROOT_PARQUET: {CREATE_ROOT_PARQUET}")
     logger.info(f"CREATE_PARQUET: {CREATE_PARQUET}")
     logger.info(f"CREATE_ZIP: {CREATE_ZIP}")
 
@@ -197,7 +228,10 @@ if __name__ == "__main__":
             RAW_DATA_ROOT / MINIFIGS_CSV["zip_filename"],
             RAW_DATA_ROOT / INVENTORY_MINIFIGS_CSV["zip_filename"]
         ])
-        create_dataframe()
+    convert_csv_to_parquet(RAW_DATA_ROOT)
+
+    if CREATE_ROOT_PARQUET:
+        create_root_parquet()
     
     if CREATE_PARQUET:
         dataframe = pd.read_parquet(

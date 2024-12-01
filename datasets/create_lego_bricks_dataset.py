@@ -6,14 +6,22 @@ from loguru import logger
 import pandas as pd
 
 
+# Download the original CSVs from rebrickable.
+# Note that the same data, is already available 
+# as parquet files in the raw_data folder
+# and was downloaded on 27 November 2024.
+DOWNLOAD_CSVS = False
+CREATE_ROOT_PARQUET = True
 # Note that the images for this dataset are A LOT!
 # Roughly 1.3 million images, not counting for
 # not working urls, etc. So setting this to True
 # will take a lot of time and space.
-DOWNLOAD_CSVS = False
-CREATE_ROOT_PARQUET = True
 DOWNLOAD_IMAGES = False
 CREATE_PARQUET = False
+# Create a zip file with the final dataset
+# parquet files ready to be uploaded to the hub. 
+# The zip file can be omitted if not using a remote
+# headless machine to upload the dataset.
 CREATE_ZIP = False
 
 THIS_PATH = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -26,22 +34,26 @@ DATASET_PARQUET_PATH = LEGO_BRICKS_DATASET_ROOT / "data"
 INVENTORY_PARTS_CSV = {
     "url": "https://cdn.rebrickable.com/media/downloads/inventory_parts.csv.gz?1732432105.4099913",
     "zip_filename": "inventory_parts.csv.gz",
-    "filename": "inventory_parts.csv"
+    "filename": "inventory_parts.csv",
+    "parquet_filename": "inventory_parts.parquet"
 }
 PARTS_CSV = {
     "url": "https://cdn.rebrickable.com/media/downloads/parts.csv.gz?1732432081.1133678",
     "zip_filename": "parts.csv.gz",
-    "filename": "parts.csv"
+    "filename": "parts.csv",
+    "parquet_filename": "parts.parquet"
 }
 COLORS_CSV = {
     "url": "https://cdn.rebrickable.com/media/downloads/colors.csv.gz?1732432080.0813415",
     "zip_filename": "colors.csv.gz",
-    "filename": "colors.csv"
+    "filename": "colors.csv",
+    "parquet_filename": "colors.parquet"
 }
 PART_CATEGORIES_CSV = {
     "url": "https://cdn.rebrickable.com/media/downloads/part_categories.csv.gz?1732432080.0853415",
     "zip_filename": "part_categories.csv.gz",
-    "filename": "part_categories.csv"
+    "filename": "part_categories.csv",
+    "parquet_filename": "part_categories.parquet"
 }
 
 
@@ -68,6 +80,26 @@ def unzip_csv_files(files: list[Path]):
         os.system(f"gzip -d -f {file_path}")
         logger.success(f"Unzipped: {file_path}")
 
+def convert_csvs_to_parquet(raw_data_root: Path):
+    inventory_parts = pd.read_csv(raw_data_root / INVENTORY_PARTS_CSV["filename"])
+    parts = pd.read_csv(raw_data_root / PARTS_CSV["filename"])
+    colors = pd.read_csv(raw_data_root / COLORS_CSV["filename"])
+    part_categories = pd.read_csv(raw_data_root / PART_CATEGORIES_CSV["filename"])
+
+    logger.success("Loaded all CSVs")
+
+    inventory_parts.to_parquet(
+        raw_data_root / INVENTORY_PARTS_CSV["parquet_filename"])
+    parts.to_parquet(
+        raw_data_root / PARTS_CSV["parquet_filename"])
+    colors.to_parquet(
+        raw_data_root / COLORS_CSV["parquet_filename"])
+    part_categories.to_parquet(
+        raw_data_root / PART_CATEGORIES_CSV["parquet_filename"])
+
+    logger.success("Saved all parquet files")
+    
+
 def create_root_parquet(raw_data_root: Path, dataset_root: Path):
     """
     Create a parquet file with all the data from the CSVs
@@ -75,12 +107,16 @@ def create_root_parquet(raw_data_root: Path, dataset_root: Path):
     It acts as a middle step to avoid reading multiple CSVs when creating
     the final dataset.
     """
-    inventory_parts = pd.read_csv(raw_data_root / INVENTORY_PARTS_CSV["filename"])
-    parts = pd.read_csv(raw_data_root / PARTS_CSV["filename"])
-    colors = pd.read_csv(raw_data_root / COLORS_CSV["filename"])
-    part_categories = pd.read_csv(raw_data_root / PART_CATEGORIES_CSV["filename"])
+    inventory_parts = pd.read_parquet(
+        raw_data_root / INVENTORY_PARTS_CSV["parquet_filename"])
+    parts = pd.read_parquet(
+        raw_data_root / PARTS_CSV["parquet_filename"])
+    colors = pd.read_parquet(
+        raw_data_root / COLORS_CSV["parquet_filename"])
+    part_categories = pd.read_parquet(
+        raw_data_root / PART_CATEGORIES_CSV["parquet_filename"])
 
-    logger.success("Loaded all CSVs")
+    logger.success("Loaded all Parquet files")
 
     lego_bricks = inventory_parts.copy()
 
@@ -126,13 +162,13 @@ def create_folder_if_not_exists(folder_path: Path):
         folder_path.mkdir(parents=True)
         logger.success(f"Created folder: {folder_path}")
 
-def check_csv_exist(csv_root: Path):
+def check_parquets_exist(csv_root: Path):
     if not all(
         [
-            (csv_root / INVENTORY_PARTS_CSV["filename"]).exists(),
-            (csv_root / PARTS_CSV["filename"]).exists(),
-            (csv_root / COLORS_CSV["filename"]).exists(),
-            (csv_root / PART_CATEGORIES_CSV["filename"]).exists()
+            (csv_root / INVENTORY_PARTS_CSV["parquet_filename"]).exists(),
+            (csv_root / PARTS_CSV["parquet_filename"]).exists(),
+            (csv_root / COLORS_CSV["parquet_filename"]).exists(),
+            (csv_root / PART_CATEGORIES_CSV["parquet_filename"]).exists()
         ]
     ):
         logger.error("Some CSV files are missing.")
@@ -160,9 +196,14 @@ if __name__ == "__main__":
             RAW_DATA_ROOT / COLORS_CSV["zip_filename"],
             RAW_DATA_ROOT / PART_CATEGORIES_CSV["zip_filename"]
         ])
+        convert_csvs_to_parquet(RAW_DATA_ROOT)
 
     if CREATE_ROOT_PARQUET:
-        if not check_csv_exist(RAW_DATA_ROOT):
+        if not check_parquets_exist(RAW_DATA_ROOT):
+            logger.error(
+                "Use DOWNLOAD_CSVS=True to download the CSVs and "
+                "convert them to parquet."
+            )
             exit(1)
         create_root_parquet(RAW_DATA_ROOT, LEGO_BRICKS_DATASET_ROOT)
 

@@ -1,5 +1,3 @@
 __pycache__/
 preprocess_dataset_playground.ipynb
-processed_data/
-datasets/raw_data/
 .bricks_dataset/
