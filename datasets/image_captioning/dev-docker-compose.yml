@@ -1,0 +1,21 @@
+services:
+  image_captioning:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: image_captioning
+    env_file:
+      - .env
+    volumes:
+      - ./src:/image_captioning/src
+    stdin_open: true
+    tty: true
+    command:
+      - /bin/bash
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

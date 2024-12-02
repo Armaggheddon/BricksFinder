@@ -1,0 +1,15 @@
+services:
+  image_captioning:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: image_captioning
+    env_file:
+      - .env
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
