@@ -1,0 +1,6 @@
+pandas
+pillow
+datasets
+google-generativeai
+loguru
+tqdm
