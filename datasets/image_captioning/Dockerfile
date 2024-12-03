@@ -8,4 +8,3 @@ RUN pip install --no-cache -r requirements.txt
 
 COPY src/ .
 
-CMD ["python3", "src/main.py", "--dataset", "armaggheddon97/lego_minifigure_captions"]

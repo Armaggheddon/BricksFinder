@@ -1,2 +1,2 @@
 # Image captioning
-This code is used to caption the images contained in the datasets.
+The code in this directory is for trying out different image captioning models.
