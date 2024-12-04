@@ -1,6 +1,7 @@
 import os
 import urllib.request
 from pathlib import Path
+from create_captions import CaptionGenerator 
 
 from loguru import logger
 import pandas as pd
@@ -15,12 +16,14 @@ import tqdm
 # as parquet files in the raw_data folder
 # and was downloaded on 27 November 2024.
 DOWNLOAD_CSVS = False
+CONVERT_CSVS_TO_PARQUET = False
 CREATE_ROOT_PARQUET = False
 # Note that the images for this dataset are
 # roughly 13k images. This will take time
 # and space to download. Consider using 
 # the images in the huggingface dataset instead.
 DOWNLOAD_IMAGES = False
+CREATE_GEMINI_CAPTIONS = True
 CREATE_PARQUET = False
 # Create a zip file with the final dataset
 # parquet files ready to be uploaded to the hub. 
@@ -34,6 +37,8 @@ RAW_DATA_ROOT = THIS_PATH / "raw_data"
 MINIFIGURES_DATASET_ROOT = THIS_PATH / "lego_minifigures_captions"
 DATASET_IMAGES_PATH = MINIFIGURES_DATASET_ROOT / "images"
 DATASET_PARQUET_PATH = MINIFIGURES_DATASET_ROOT / "data"
+DATASET_CAPTIONS_PATH = MINIFIGURES_DATASET_ROOT / "captions"
+GEMINI_API_KEYS_PATH = THIS_PATH / "gemini_api_keys.json"
 
 MINIFIGS_CSV = {
     "url": "https://cdn.rebrickable.com/media/downloads/minifigs.csv.gz?1732432083.3254244",
@@ -146,7 +151,7 @@ def create_root_parquet():
 
     # save dataframe as parquet
     result_df.to_parquet(DATASET_PARQUET_PATH / "minifigures_no_img.parquet")
-
+        
 
 def create_parquet(dataframe: pd.DataFrame):
     """
@@ -219,6 +224,7 @@ if __name__ == "__main__":
     logger.info(f"DOWNLOAD_IMAGES: {DOWNLOAD_IMAGES}")
     logger.info(f"DOWNLOAD_CSVS: {DOWNLOAD_CSVS}")
     logger.info(f"CREATE_ROOT_PARQUET: {CREATE_ROOT_PARQUET}")
+    logger.info(f"CREATE_GEMINI_CAPTIONS: {CREATE_GEMINI_CAPTIONS}")
     logger.info(f"CREATE_PARQUET: {CREATE_PARQUET}")
     logger.info(f"CREATE_ZIP: {CREATE_ZIP}")
 
@@ -228,10 +234,20 @@ if __name__ == "__main__":
             RAW_DATA_ROOT / MINIFIGS_CSV["zip_filename"],
             RAW_DATA_ROOT / INVENTORY_MINIFIGS_CSV["zip_filename"]
         ])
-    convert_csv_to_parquet(RAW_DATA_ROOT)
+    
+    if CONVERT_CSVS_TO_PARQUET:
+        convert_csv_to_parquet(RAW_DATA_ROOT)
 
     if CREATE_ROOT_PARQUET:
         create_root_parquet()
+
+    if CREATE_GEMINI_CAPTIONS:
+        caption_generator = CaptionGenerator(
+            DATASET_PARQUET_PATH,
+            MINIFIGURES_DATASET_ROOT,
+            GEMINI_API_KEYS_PATH
+        )
+        caption_generator.generate_captions()
     
     if CREATE_PARQUET:
         dataframe = pd.read_parquet(
