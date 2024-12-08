@@ -5,9 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: clip_finetuning
     volumes:
-      - ./src:/clip_finetune/src
-      - ./finetuned_weights:/clip_finetune/weights
-      - ../lego_bricks_dataset/processed_data:/lego_bricks_dataset/processed_data
+      - .:/clip_finetune
     stdin_open: true
     tty: true
     command:
