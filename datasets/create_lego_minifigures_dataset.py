@@ -1,35 +1,40 @@
 import os
-import urllib.request
 from pathlib import Path
-from create_captions import CaptionGenerator 
+import json
 
 from loguru import logger
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-from PIL import Image
 import tqdm
+
+import utils
 
 
 # Download the original CSVs from rebrickable.
-# Note that the same data, is already available
-# as parquet files in the raw_data folder
-# and was downloaded on 27 November 2024.
 DOWNLOAD_CSVS = False
+
+# Convert the CSVs to parquet files.
 CONVERT_CSVS_TO_PARQUET = False
+
+# Create a temporary parquet file with all the columns. This will
+# be used to assign the id to the downloaded images.
 CREATE_ROOT_PARQUET = False
-# Note that the images for this dataset are
-# roughly 13k images. This will take time
-# and space to download. Consider using 
-# the images in the huggingface dataset instead.
+
+# Using the temporary parquet file, will download all the images
+# and overwrite the parquet file with only the rows that have images.
 DOWNLOAD_IMAGES = False
-CREATE_GEMINI_CAPTIONS = True
-CREATE_PARQUET = False
+
+# Generate captions for the images using the Gemini model.
+CREATE_GEMINI_CAPTIONS = False
+
+# Create the final dataset parquet files.
+CREATE_DATASET_PARQUET = False
+
 # Create a zip file with the final dataset
 # parquet files ready to be uploaded to the hub. 
-# The zip file can be omitted if not using a remote
-# headless machine to upload the dataset.
 CREATE_ZIP = False
+
 
 THIS_PATH = Path(os.path.dirname(os.path.abspath(__file__)))
 
@@ -38,7 +43,6 @@ MINIFIGURES_DATASET_ROOT = THIS_PATH / "lego_minifigures_captions"
 DATASET_IMAGES_PATH = MINIFIGURES_DATASET_ROOT / "images"
 DATASET_PARQUET_PATH = MINIFIGURES_DATASET_ROOT / "data"
 DATASET_CAPTIONS_PATH = MINIFIGURES_DATASET_ROOT / "captions"
-GEMINI_API_KEYS_PATH = THIS_PATH / "gemini_api_keys.json"
 
 MINIFIGS_CSV = {
     "url": "https://cdn.rebrickable.com/media/downloads/minifigs.csv.gz?1732432083.3254244",
@@ -53,64 +57,11 @@ INVENTORY_MINIFIGS_CSV = {
     "parquet_filename": "inventory_minifigs.parquet"
 }
 
-
-def download_dataset(download_path: Path):
+def create_root_parquet():
     """
-    Downloads the dataset from the Rebrickable website
+    Creates a temporary parquet file with all the columns. This will
+    be used to assign the id to the downloaded images.
     """
-    urllib.request.urlretrieve(
-        MINIFIGS_CSV["url"], 
-        download_path / MINIFIGS_CSV["zip_filename"]
-    )
-    logger.success(f"Downloaded: {MINIFIGS_CSV['zip_filename']}")
-    urllib.request.urlretrieve(
-        INVENTORY_MINIFIGS_CSV["url"], 
-        download_path / INVENTORY_MINIFIGS_CSV["zip_filename"]
-    )
-    logger.success(f"Downloaded: {INVENTORY_MINIFIGS_CSV['zip_filename']}")
-
-def convert_csv_to_parquet(raw_data_root: Path):
-    minifigs = pd.read_csv(raw_data_root / MINIFIGS_CSV["filename"])
-    inventory_minifigs = pd.read_csv(raw_data_root / INVENTORY_MINIFIGS_CSV["filename"])
-
-    logger.success(f"Loaded all CSVs")
-
-    minifigs.to_parquet(
-        raw_data_root / MINIFIGS_CSV["parquet_filename"])
-    inventory_minifigs.to_parquet(
-        raw_data_root / INVENTORY_MINIFIGS_CSV["parquet_filename"])
-    
-    logger.success(f"Saved all parquet files")
-
-
-def unzip_csv_files(files: list[Path]):
-    # unzipping transforms the filename
-    # from filename.csv.gz to filename.csv
-    for file_path in files:
-        os.system(f"gzip -d -f {file_path}")
-        logger.success(f"Unzipped: {file_path}")
-
-def download_images(dataframe: pd.DataFrame, download_path: Path):
-    """
-    Downloads the images from the URLs in the dataframe 
-    and saves them in the download_path folder
-    as {row_id}.jpg
-    """
-    max_retries = 5
-    for idx, row in tqdm.tqdm(dataframe.iterrows()):
-        curr_retries = 0
-        is_downloaded = False
-        while not is_downloaded and curr_retries < max_retries:
-            try:
-                image = Image.open(urllib.request.urlopen(row["img_url"]))
-                image.save(download_path / f"{idx}.jpg", format="JPEG")
-                is_downloaded = True
-            except Exception as e:
-                logger.error(f"Error downloading image: {row['img_url']}")
-                logger.error(f"Error: {e}")
-                curr_retries += 1
-
-def create_root_parquet():  
     minifigs = pd.read_parquet( RAW_DATA_ROOT / MINIFIGS_CSV["parquet_filename"],)
     logger.info(f"Loaded: {MINIFIGS_CSV['filename']}")
     inventory_minifigs = pd.read_csv(RAW_DATA_ROOT / INVENTORY_MINIFIGS_CSV["parquet_filename"])
@@ -136,22 +87,27 @@ def create_root_parquet():
             "inventory_id"
         ]
     ]
-    
-    if DOWNLOAD_IMAGES:
-        download_images(result_df, DATASET_IMAGES_PATH)
-    
-    missing_images = len(result_df) - len(os.listdir(DATASET_IMAGES_PATH))
+    result_df.to_parquet(MINIFIGURES_DATASET_ROOT / "minifigures_no_img.parquet")
+
+def remove_missing_rows(dataframe: pd.DataFrame):
+    """
+    Uses the dataframe created from create_tmp_parquet and removes 
+    the rows with missing images. The final parquet file will only
+    contain rows with images available. Relies on the fact that
+    the images are downloaded in the DATASET_IMAGES_PATH folder.
+    """
+    missing_images = len(dataframe) - len(os.listdir(DATASET_IMAGES_PATH))
     logger.info(f"Missing images: {missing_images}")
 
     # remove rows with missing images
-    result_df = result_df[
-        result_df["file_name"].apply(lambda x: x in os.listdir(DATASET_IMAGES_PATH))]
+    dataframe = dataframe[
+        dataframe["file_name"].apply(lambda x: x in os.listdir(DATASET_IMAGES_PATH))]
     logger.info(
-        f"Removed rows with missing images, new shape: {result_df.shape}")
+        f"Removed rows with missing images, new shape: {dataframe.shape}")
 
     # save dataframe as parquet
-    result_df.to_parquet(DATASET_PARQUET_PATH / "minifigures_no_img.parquet")
-        
+    dataframe.to_parquet(DATASET_PARQUET_PATH / "minifigures_no_img.parquet")
+
 
 def create_parquet(dataframe: pd.DataFrame):
     """
@@ -160,24 +116,36 @@ def create_parquet(dataframe: pd.DataFrame):
     - fig_num
     - image
     - short_caption
-    - long_caption [for now omitted, when generated it will be added]
+    - caption
+
+    Requires that the images are downloaded in the DATASET_IMAGES_PATH folder
+    and the captions are generated in the DATASET_CAPTIONS_PATH folder.
     """
     table_rows = []
+    json_idx = 0
 
-    for idx, row in tqdm.tqdm(dataframe.iterrows()):
-        row = row.to_dict()
-        image_name = f"{idx}.jpg"
+    for img_idx, row in tqdm.tqdm(dataframe.iterrows()):
+        image_name = f"{img_idx}.jpg"
         image_path = DATASET_IMAGES_PATH / image_name
+        caption_name = f"{json_idx}.json"
+        caption_path = DATASET_CAPTIONS_PATH / caption_name
+        
         image_bytes = b""
-        if image_path.exists():
-            image_bytes = image_path.read_bytes()
-        row.pop("file_name")
-        row.pop("img_url")
-        row.pop("inventory_id")
-        row.pop("num_parts")
-        row["short_caption"] = row.pop("name")
-        row["image"] = {"bytes": image_bytes, "path": f"{idx}.jpg"}
-        table_rows.append(row)
+        # if image does not exist, someone has deleted it,
+        # previous steps should have removed the row from the dataframe
+        image_bytes = image_path.read_bytes() 
+        with open(caption_path) as f:
+            caption_data = json.load(f)
+        
+        row_data = {
+            "fig_num": row["fig_num"],
+            "image": {"bytes": image_bytes, "path": f"{img_idx}.jpg"},
+            "short_caption": row["name"],
+            "caption": caption_data["caption"]
+        }
+        table_rows.append(row_data)
+
+        json_idx += 1
     
     parquet_table = pa.Table.from_pylist(table_rows)
     # save parquet table in multiple files with max size of 200MB
@@ -191,68 +159,94 @@ def create_parquet(dataframe: pd.DataFrame):
     start_idx = 0
     file_idx = 0
     while start_idx < total_rows:
-        # Calculate the end index for this chunk
+        # calculate the end index for this chunk
         end_idx = min(start_idx + max_rows_per_file, total_rows)
 
-        # Slice the table to create a chunk
+        # slice the table to create a chunk
         chunk = parquet_table.slice(start_idx, end_idx - start_idx)
 
-        # Write the chunk to a Parquet file
-        output_file = DATASET_PARQUET_PATH / f"minifigures-{file_idx:05d}-of-{num_files:05d}.parquet"
+        # write the chunk to a Parquet file
+        output_file = DATASET_PARQUET_PATH / f"train-{file_idx:05d}-of-{num_files:05d}.parquet"
         pq.write_table(chunk, output_file)
 
         print(f"Written {output_file} with rows {start_idx} to {end_idx - 1}")
         start_idx = end_idx
         file_idx += 1
 
-def create_data_zip(data_path: Path):
-    os.system(f"zip -r {data_path / 'data'}.zip {data_path}")
-    logger.success(f"Zipped data to: {data_path / 'data'}.zip")
-
-def create_folder_if_not_exists(folder_path: Path):
-    if not folder_path.exists():
-        folder_path.mkdir(parents=True)
-        logger.success(f"Created folder: {folder_path}")
 
 if __name__ == "__main__":
-    create_folder_if_not_exists(RAW_DATA_ROOT)
-    create_folder_if_not_exists(MINIFIGURES_DATASET_ROOT)
-    create_folder_if_not_exists(DATASET_IMAGES_PATH)
-    create_folder_if_not_exists(DATASET_PARQUET_PATH)
+    utils.touch_folder(RAW_DATA_ROOT)
+    utils.touch_folder(MINIFIGURES_DATASET_ROOT)
+    utils.touch_folder(DATASET_CAPTIONS_PATH)
+    utils.touch_folder(DATASET_IMAGES_PATH)
+    utils.touch_folder(DATASET_PARQUET_PATH)
 
     logger.info("Starting dataset creation with options:")
-    logger.info(f"DOWNLOAD_IMAGES: {DOWNLOAD_IMAGES}")
     logger.info(f"DOWNLOAD_CSVS: {DOWNLOAD_CSVS}")
+    logger.info(f"CONVERT_CSVS_TO_PARQUET: {CONVERT_CSVS_TO_PARQUET}")
     logger.info(f"CREATE_ROOT_PARQUET: {CREATE_ROOT_PARQUET}")
+    logger.info(f"DOWNLOAD_IMAGES: {DOWNLOAD_IMAGES}")
     logger.info(f"CREATE_GEMINI_CAPTIONS: {CREATE_GEMINI_CAPTIONS}")
-    logger.info(f"CREATE_PARQUET: {CREATE_PARQUET}")
+    logger.info(f"CREATE_PARQUET: {CREATE_DATASET_PARQUET}")
     logger.info(f"CREATE_ZIP: {CREATE_ZIP}")
 
     if DOWNLOAD_CSVS:
-        download_dataset(RAW_DATA_ROOT)
-        unzip_csv_files([
-            RAW_DATA_ROOT / MINIFIGS_CSV["zip_filename"],
-            RAW_DATA_ROOT / INVENTORY_MINIFIGS_CSV["zip_filename"]
-        ])
+        utils.download_csv_files(
+            destination_path=RAW_DATA_ROOT,
+            urls=[
+                MINIFIGS_CSV["url"], 
+                INVENTORY_MINIFIGS_CSV["url"]
+            ],
+            filenames=[
+                MINIFIGS_CSV["zip_filename"], 
+                INVENTORY_MINIFIGS_CSV["zip_filename"]
+            ]
+        )
     
     if CONVERT_CSVS_TO_PARQUET:
-        convert_csv_to_parquet(RAW_DATA_ROOT)
+        utils.csv_to_parquet(
+            csv_files=[
+                RAW_DATA_ROOT / MINIFIGS_CSV["zip_filename"], 
+                RAW_DATA_ROOT / INVENTORY_MINIFIGS_CSV["zip_filename"]
+            ],
+            parquet_files=[
+                RAW_DATA_ROOT / MINIFIGS_CSV["parquet_filename"], 
+                RAW_DATA_ROOT / INVENTORY_MINIFIGS_CSV["parquet_filename"]
+            ]
+        )
 
     if CREATE_ROOT_PARQUET:
         create_root_parquet()
 
-    if CREATE_GEMINI_CAPTIONS:
-        caption_generator = CaptionGenerator(
-            DATASET_PARQUET_PATH,
-            MINIFIGURES_DATASET_ROOT,
-            GEMINI_API_KEYS_PATH
+    if DOWNLOAD_IMAGES:
+        utils.download_images(
+            dataframe=pd.read_parquet(
+                MINIFIGURES_DATASET_ROOT / "minifigures_no_img.parquet"
+            ),
+            image_column="img_url",
+            download_path=DATASET_IMAGES_PATH,
+            image_name_template="{id}"
         )
-        caption_generator.generate_captions()
+
+        remove_missing_rows(
+            pd.read_parquet(
+                MINIFIGURES_DATASET_ROOT / "minifigures_no_img.parquet"
+            )
+        )
+
+    if CREATE_GEMINI_CAPTIONS:
+        utils.CaptionGenerator(
+            dataset_name=DATASET_PARQUET_PATH,
+            split="train",
+            captions_path=DATASET_CAPTIONS_PATH,
+        ).caption()
     
-    if CREATE_PARQUET:
-        dataframe = pd.read_parquet(
-            MINIFIGURES_DATASET_ROOT / "minifigures_no_img.parquet")
-        create_parquet(dataframe)
+    if CREATE_DATASET_PARQUET:
+        create_parquet(
+            pd.read_parquet(
+                MINIFIGURES_DATASET_ROOT / "minifigures_no_img.parquet"
+            )
+        )
     
     if CREATE_ZIP:
-        create_data_zip(DATASET_PARQUET_PATH)
+        utils.zip_dataset(DATASET_PARQUET_PATH)

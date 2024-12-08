@@ -5,6 +5,7 @@ import urllib.request
 from loguru import logger
 import pandas as pd
 
+import utils
 
 # Download the original CSVs from rebrickable.
 # Note that the same data, is already available 
@@ -30,6 +31,7 @@ RAW_DATA_ROOT = THIS_PATH / "raw_data"
 LEGO_BRICKS_DATASET_ROOT = THIS_PATH / "lego_brick_captions"
 DATASET_IMAGES_PATH = LEGO_BRICKS_DATASET_ROOT / "images"
 DATASET_PARQUET_PATH = LEGO_BRICKS_DATASET_ROOT / "data"
+DATASET_CAPTIONS_PATH = LEGO_BRICKS_DATASET_ROOT / "captions"
 
 INVENTORY_PARTS_CSV = {
     "url": "https://cdn.rebrickable.com/media/downloads/inventory_parts.csv.gz?1732432105.4099913",
