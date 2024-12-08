@@ -4,7 +4,7 @@ The **LEGO Minifigure Captions** dataset contains 12966 images of LEGO minifigur
 - `fig_num`: The figure number of the minifigure as in the original csv file from Rebrickable.
 - `image`: The jpeg image of the minifigure in the format `{"bytes": bytes, "path": str}` so that can be interpreted as `PIL.Image` objects in the huggingface `datasets` library.
 - `short_caption`: The short caption describing the minifigure in the image.
-- **COMING** `caption`: The caption describing the minifigure which is generated using Gemini-1.5-flash.
+- `caption`: The caption describing the minifigure which is generated using Gemini-1.5-flash (002).
 
 The data has been collected from the [Rebrickable](https://rebrickable.com/downloads/) website and the images have been downloaded from the column `img_url` in original *minifigs.csv* file from the website. 
 
@@ -37,7 +37,7 @@ print(df.head())
 from datasets import load_dataset
 
 # Load the dataset in streaming mode
-ds = load_dataset("armaggheddon97/lego_minifigure_captions", split="minifigures", streaming=True)
+ds = load_dataset("armaggheddon97/lego_minifigure_captions", split="train", streaming=True)
 
 # Print the dataset info
 print(next(iter(ds)))
