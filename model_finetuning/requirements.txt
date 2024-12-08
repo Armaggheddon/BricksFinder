@@ -3,4 +3,7 @@ transformers
 ftfy
 tqdm
 regex
+loguru
+datasets
+accelerate
 git+https://github.com/openai/CLIP.git
