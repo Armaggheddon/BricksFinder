@@ -13,7 +13,7 @@ import tqdm
 data = datasets.load_dataset("armaggheddon97/lego_minifigure_captions", split="train")
 
 model, preprocess = clip.load("ViT-B/32", device="cuda", jit=False)
-
+model.train()
 
 class image_title_dataset():
     def __init__(self, dataset):
@@ -27,8 +27,9 @@ class image_title_dataset():
         image = preprocess(row["image"])
         text = clip.tokenize(row["caption"])
         return image, text.squeeze(0)
-    
-dataset = image_title_dataset(data)
+
+ds_split = data.train_test_split(test_size=0.2)
+dataset = image_title_dataset(ds_split["test"])
 train_dataloader = DataLoader(dataset, batch_size=32, shuffle=True)
 
 def convert_model_to_fp32(model):
@@ -36,7 +37,13 @@ def convert_model_to_fp32(model):
         p.data = p.data.float()
         p.grad.data = p.grad.data.float()
     
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-4, betas=(0.9, 0.98), eps=1e-6, weight_decay=0.2)
+optimizer = torch.optim.Adam(
+    model.parameters(), 
+    lr=5e-5, 
+    betas=(0.9, 0.98), 
+    eps=1e-6, 
+    weight_decay=0.2
+)
 
 loss_img = nn.CrossEntropyLoss()
 loss_txt = nn.CrossEntropyLoss()
@@ -51,13 +58,15 @@ for epoch in range(num_epochs):
         images, texts = batch
         images = images.cuda()
         texts = texts.cuda()
-        image_features = model.encode_image(images)
-        text_features = model.encode_text(texts)
-        image_logits = model.logit_scale * image_features @ text_features.t()
-        text_logits = model.logit_scale * text_features @ image_features.t()
-        loss = loss_img(image_logits, torch.arange(len(images)).cuda()) + loss_txt(text_logits, torch.arange(len(texts)).cuda())
-        loss.backward()
+        img_logits, txt_logits = model(images, texts)
+        ground_truth = torch.arange(len(images)).cuda()
+        tot_loss = (
+            loss_img(img_logits, ground_truth) 
+            + loss_txt(txt_logits, ground_truth)
+        ) / 2
+        tot_loss.backward()
+
         optimizer.step()
-        pbar.set_description(f"Loss: {loss.item()}")
+        pbar.set_description(f"Epoch {epoch+1}/{num_epochs} - Loss: {tot_loss.item():.4f}")
 
 torch.save(model.state_dict(), "finetuned-clip.pth")
