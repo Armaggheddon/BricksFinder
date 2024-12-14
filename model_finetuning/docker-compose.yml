@@ -1,0 +1,16 @@
+services:
+  clip_finetuning:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: clip_finetuning
+    volumes:
+      - ./finetune_results:/clip_finetune/finetune_results
+    command: python3 finetune.py
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

@@ -1,0 +1,7 @@
+pandas
+pillow
+datasets
+google-generativeai
+loguru
+tqdm
+grpcio==1.67.1 # avoids issue of grpc timeout in google-generativeai

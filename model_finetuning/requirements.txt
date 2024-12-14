@@ -1,0 +1,7 @@
+transformers
+ftfy
+tqdm
+regex
+loguru
+datasets
+accelerate
