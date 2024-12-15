@@ -6,12 +6,7 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - .:/bricks_finder
       - ./vector_indexes:/vector_indexes
-    command: 
-      - /bin/bash
-    stdin_open: true
-    tty: true
     ulimits:
       memlock: -1
       stack: 67108864
