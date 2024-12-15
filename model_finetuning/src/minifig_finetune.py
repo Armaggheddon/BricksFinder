@@ -7,11 +7,11 @@ import torch.nn.functional as F
 
 
 # This path is mounted externally so that is persisted between runs
-FINETUNE_ROOT = Path(__file__).resolve().parent.parent / "finetune_results"
-if not FINETUNE_ROOT.exists():
-    print(f"Path {FINETUNE_ROOT} does not exist. Please mount the path to save the fine-tuned model.")
+MODEL_FINETUNING_ROOT = Path(__file__).resolve().parent.parent / "finetune_results"
+if not MODEL_FINETUNING_ROOT.exists():
+    print(f"Path {MODEL_FINETUNING_ROOT} does not exist. Please mount the path to save the fine-tuned model.")
     exit()
-MINIFIG_ROOT = FINETUNE_ROOT / "minifigure_finetune"
+MINIFIG_ROOT = MODEL_FINETUNING_ROOT / "minifigure_finetune"
 if not MINIFIG_ROOT.exists():
     MINIFIG_ROOT.mkdir(parents=True)
 FINETUNE_OUTPUT_DIR = MINIFIG_ROOT / "checkpoints"
@@ -35,7 +35,7 @@ def prepare_dataset(ds: Dataset) -> Dataset:
 
 
 dataset = load_dataset("armaggheddon97/lego_minifigure_captions", split="train")
-ds_split = dataset.train_test_split(test_size=0.1)
+ds_split = dataset.train_test_split(test_size=0.2)
 ds_train = ds_split['train']
 ds_val = ds_split['test']
 
@@ -67,7 +67,7 @@ def collate_fn(batch):
     )
     return inputs
 
-def compute_loss(outputs):
+def compute_clip_loss(outputs):
     """
     Computes the loss for the model as per the CLIP paper.
     """
@@ -99,7 +99,7 @@ training_args = TrainingArguments(
 class CustomTrainer(Trainer):
     def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
         outputs = model(**inputs)
-        loss = compute_loss(outputs)
+        loss = compute_clip_loss(outputs)
         return (loss, outputs) if return_outputs else loss
 
 trainer = CustomTrainer(
@@ -112,7 +112,7 @@ trainer = CustomTrainer(
 
 trainer.train()
 
-print(trainer.evaluate(dataset_dict["train"]))
+print(trainer.evaluate(dataset_dict["validation"]))
 
 model.save_pretrained(str(FINETUNE_RESULTS_DIR))
 processor.save_pretrained(str(FINETUNE_RESULTS_DIR))
