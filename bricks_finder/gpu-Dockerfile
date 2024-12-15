@@ -1,0 +1,11 @@
+FROM nvcr.io/nvidia/pytorch:24.11-py3
+
+WORKDIR /bricks_finder
+
+COPY gpu-requirements.txt .
+
+RUN pip install --no-cache -r gpu-requirements.txt
+
+COPY . .
+
+CMD ["python", "src/main.py"]

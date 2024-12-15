@@ -1,0 +1,20 @@
+services:
+  bricks_finder:
+    build:
+      context: .
+      dockerfile: gpu-Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/bricks_finder
+    command: 
+      - /bin/bash
+    stdin_open: true
+    tty: true
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
