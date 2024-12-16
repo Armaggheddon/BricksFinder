@@ -1,3 +1,6 @@
 # transformers
 faiss-cpu
 gradio
+datasets
+transformers
+loguru
