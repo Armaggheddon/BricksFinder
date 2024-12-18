@@ -213,8 +213,9 @@ class QueryHelper:
             ).to(self.device)
             embeddings = self.model.get_text_features(**input_tokens).detach().cpu().numpy()
         else:
-            input_tokens = self.image_transform(query).unsqueeze(0).to(self.device)
-            embeddings = self.model.get_image_features(**input_tokens).detach().cpu().numpy()
+            image_tensor = to_tensor(query).to(self.device)
+            input_tokens = self.image_transform(image_tensor).unsqueeze(0)
+            embeddings = self.model.get_image_features(input_tokens).detach().cpu().numpy()
 
         D, I = self.vector_index.search(embeddings, top_k)
         results = []
