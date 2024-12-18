@@ -61,19 +61,12 @@ class QueryHelper:
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model_dtype = torch.float16 if self.device == "cuda" else torch.float32
 
-        class ImageTransform(torch.nn.Module):
-            def __init__(self):
-                super(ImageTransform, self).__init__()
-                self.transform = Compose([
-                    Resize(224, interpolation=InterpolationMode.BICUBIC),
-                    CenterCrop(224),
-                    Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
-                ])
-            def forward(self, x) -> torch.Tensor:
-                return self.transform(x)
-
-        image_transform = ImageTransform()
-        self.image_transform = torch.compile(image_transform).to(self.device)
+        self.image_transform = Compose([
+            Resize(224, interpolation=InterpolationMode.BICUBIC),
+            CenterCrop(224),
+            ToTensor(),
+            Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
+        ])
 
         self.current_index_type = default_index
         self.model, self.tokenizer = self._load_model()
@@ -192,8 +185,7 @@ class QueryHelper:
         vector_index = faiss.IndexFlatIP(512)
         for i, example in tqdm.tqdm(enumerate(self.dataset)):
             image = example["image"]
-            image_tensor = to_tensor(image).to(self.device)
-            patches = self.image_transform(image_tensor).unsqueeze(0)
+            patches = self.image_transform(image).unsqueeze(0).to(self.device)
             image_features = self.model.get_image_features(patches).detach().cpu().numpy()
             vector_index.add(image_features)
         
@@ -213,8 +205,7 @@ class QueryHelper:
             ).to(self.device)
             embeddings = self.model.get_text_features(**input_tokens).detach().cpu().numpy()
         else:
-            image_tensor = to_tensor(query).to(self.device)
-            input_tokens = self.image_transform(image_tensor).unsqueeze(0)
+            input_tokens = self.image_transform(query).unsqueeze(0).to(self.device)
             embeddings = self.model.get_image_features(input_tokens).detach().cpu().numpy()
 
         D, I = self.vector_index.search(embeddings, top_k)
