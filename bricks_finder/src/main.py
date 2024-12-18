@@ -1,6 +1,7 @@
 from pathlib import Path
 import argparse
 
+from loguru import logger
 import gradio as gr
 
 from query_helper import QueryHelper, IndexType
@@ -95,9 +96,12 @@ if __name__ == "__main__":
     parser.add_argument(
         "--share",
         action="store_true",
+        type=bool,
+        default=False,
         help="Share the interface on a public URL"
     )
     args = parser.parse_args()
+    logger.info(f"Share link: {args.share}")
 
     interface.launch(
         server_name="0.0.0.0",
