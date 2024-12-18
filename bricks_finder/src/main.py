@@ -96,7 +96,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "--share",
         action="store_true",
-        type=bool,
         default=False,
         help="Share the interface on a public URL"
     )
