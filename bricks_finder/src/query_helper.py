@@ -11,7 +11,7 @@ import torch
 from torchvision.transforms.functional import to_tensor, resize
 from loguru import logger
 from torchvision.transforms import Compose, Resize, CenterCrop, ToTensor, Normalize, InterpolationMode
-from datasets import load_dataset
+from datasets import load_dataset, Dataset
 from transformers import CLIPModel, CLIPTokenizerFast
 
 
@@ -37,26 +37,38 @@ class IndexType(Enum):
 class QueryResult:
     idx: int
     image: PILImage
-    additional_info: str
     distance: float
+
+@dataclass
+class IndexPaths:
+    root: Path
+    dataset: Path
+    model: Path
+    tokenizer: Path
+    index: Path
 
 
 class QueryHelper:
-    def __init__(self, vector_index_root: Path, default_index: IndexType = IndexType.MINIFIGURE):
-        
-        self.minifigure_root = vector_index_root / "minifigures"
-        self.minifigure_dataset = self.minifigure_root / "dataset_cache"
-        self.minifigure_model = self.minifigure_root / "model_cache"
-        self.minifigure_tokenizer = self.minifigure_root / "tokenizer_cache"
-        self.minifigure_index = self.minifigure_root / "index.faiss"
-        self.brick_root = vector_index_root / "bricks"
-        self.brick_dataset = self.brick_root / "dataset_cache"
-        self.brick_model = self.brick_root / "model_cache"
-        self.brick_tokenizer = self.brick_root / "tokenizer_cache"
-        self.brick_index = self.brick_root / "index.faiss"
+    def __init__(self, vector_index_root: Path):
+        minifigure_root = vector_index_root / "minifigures"
+        self.minifigure_paths = IndexPaths(
+            root = minifigure_root,
+            dataset = minifigure_root / "dataset_cache",
+            model = minifigure_root / "model_cache",
+            tokenizer = minifigure_root / "tokenizer_cache",
+            index = minifigure_root / "index.faiss"
+        )
+        brick_root = vector_index_root / "bricks"
+        self.brick_paths = IndexPaths(
+            root = brick_root / "dataset_cache",
+            dataset = brick_root / "model_cache",
+            model = brick_root / "tokenizer_cache",
+            tokenizer = brick_root / "tokenizer_cache",
+            index = brick_root / "index.faiss"
+        )
 
-        self.minifigure_root.mkdir(parents=True, exist_ok=True)
-        self.brick_root.mkdir(parents=True, exist_ok=True)
+        minifigure_root.mkdir(parents=True, exist_ok=True)
+        brick_root.mkdir(parents=True, exist_ok=True)
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model_dtype = torch.float16 if self.device == "cuda" else torch.float32
@@ -65,28 +77,38 @@ class QueryHelper:
             Resize(224, interpolation=InterpolationMode.BICUBIC),
             CenterCrop(224),
             ToTensor(),
-            Normalize((0.48145466, 0.4578275, 0.40821073), (0.26862954, 0.26130258, 0.27577711))
+            Normalize(
+                mean=(0.48145466, 0.4578275, 0.40821073), 
+                std=(0.26862954, 0.26130258, 0.27577711)
+            )
         ])
 
-        self.current_index_type = default_index
+        self.current_index_type: IndexType | None = None
+        self.model: CLIPModel | None = None
+        self.tokenizer: CLIPTokenizerFast | None = None
+        self.dataset: Dataset | None = None
+        self.vector_index: faiss.IndexFlatL2 | None = None
+
+    def load_default_index(self, index_type: IndexType = IndexType.MINIFIGURE, rebuild_indexes: bool = False) -> None:
+        self.current_index_type = index_type
+        if rebuild_indexes:
+            logger.info("Deleting existing indexes...")
+            if self.minifigure_paths.index.exists():
+                self.minifigure_paths.index.unlink()
+                logger.success("Deleted minifigure index")
+            else:
+                logger.info("Minifigure index does not exist")
+            if self.brick_paths.index.exists():
+                self.brick_paths.index.unlink()
+                logger.success("Deleted brick index")
+            else:
+                logger.info("Brick index does not exist")
+
         self.model, self.tokenizer = self._load_model()
         self.dataset = self._load_dataset()
-
-        if not self.minifigure_index.exists():
-            self._build_index(IndexType.MINIFIGURE, self.minifigure_index)
         self.vector_index = self._load_vector_index()
-        
-        # load_dataset(
-        #     HF_BRICKS_REPO_ID,
-        #     cache_dir=self.brick_root,
-        #     split="train",
-        #     download_mode="reuse_cache_if_exists",
-        # )
-        # if not self.brick_index.exists():
-        #     self.build_index(IndexType.BRICK)
 
     def _free_resources(self):
-        logger.info(f"Releasing resources for {self.current_index_type} dataset and model")
         if self.dataset is not None:
             del self.dataset
         if self.model is not None:
@@ -97,94 +119,94 @@ class QueryHelper:
             del self.tokenizer
         if self.vector_index is not None:
             del self.vector_index
-        logger.info(f"Resources released for {self.current_index_type} dataset and model")
     
-    def _load_model(self):
-        model_id = (
+    def _load_model(self) -> tuple[CLIPModel, CLIPTokenizerFast]:
+        hf_repo_id = (
             HF_MINIFIGURE_MODEL_ID 
             if self.current_index_type == IndexType.MINIFIGURE 
             else HF_BRICKS_REPO_ID
         )
         model_cache = (
-            self.minifigure_model 
+            self.minifigure_paths.model
             if self.current_index_type == IndexType.MINIFIGURE 
-            else self.brick_model
+            else self.brick_paths.model
         )
         tokenizer_cache = (
-            self.minifigure_tokenizer 
+            self.minifigure_paths.tokenizer 
             if self.current_index_type == IndexType.MINIFIGURE 
-            else self.brick_tokenizer
+            else self.brick_paths.tokenizer
         )
         model = CLIPModel.from_pretrained(
-            model_id, 
+            hf_repo_id, 
             cache_dir=model_cache, 
             torch_dtype=self.model_dtype
         ).to(self.device)
-        logger.info(f"Loaded {model_id} model")
 
         tokenizer = CLIPTokenizerFast.from_pretrained(
-            model_id,
+            hf_repo_id,
             cache_dir=tokenizer_cache
         )
-        logger.info(f"Loaded {model_id} tokenizer")
         return model, tokenizer
 
-    
-    def _load_dataset(self):
-        dataset_id = (
+    def _load_dataset(self) -> Dataset:
+        hf_dataset_id = (
             HF_MINIFIGURES_DATASET_ID 
             if self.current_index_type == IndexType.MINIFIGURE 
             else HF_BRICKS_REPO_ID
         )
         dataset_cache = (
-            self.minifigure_dataset 
+            self.minifigure_paths.dataset 
             if self.current_index_type == IndexType.MINIFIGURE 
-            else self.brick_dataset
+            else self.minifigure_paths.dataset
         )
         dataset = load_dataset(
-            dataset_id,
+            hf_dataset_id,
             cache_dir=dataset_cache,
             split="train",
             download_mode="reuse_cache_if_exists",
-        )
-        logger.info(f"Loaded {self.current_index_type.value} dataset")        
+        )       
         return dataset
 
-    def _load_vector_index(self):
+    def _load_vector_index(self) -> faiss.IndexFlatL2:
         index_path = (
-            self.minifigure_index 
+            self.minifigure_paths.index 
             if self.current_index_type == IndexType.MINIFIGURE 
-            else self.brick_index
+            else self.brick_paths.index
         )
+        if not index_path.exists():
+            self._build_index(index_path)
         vector_index = faiss.read_index(str(index_path))
-        logger.info(f"Loaded {self.current_index_type.value} vector index")
         return vector_index
         
-    def _switch_dataset(self, index_type: IndexType = IndexType.MINIFIGURE):
+    def _switch_index_type(self, index_type: IndexType) -> None:
         if self.current_index_type == index_type:
             logger.info(f"Already using {index_type} dataset and model")
             return
 
         self._free_resources()
+        logger.info(f"Resources for {self.current_index_type} freed")
 
         self.current_index_type = index_type
 
         self.model, self.tokenizer = self._load_model()
+        logger.info(f"Loaded model and tokenizer for {index_type} dataset")
         self.dataset = self._load_dataset()
+        logger.info(f"Loaded dataset for {index_type} dataset")
         self.vector_index = self._load_vector_index()
+        logger.info(f"Loaded vector index for {index_type} dataset")
 
+        logger.success(f"Switched to {index_type} dataset and model")
 
     def _build_index(
-        self, 
-        index_type: IndexType,
+        self,
         index_path: Path
-    ):
-        self._switch_dataset(index_type)
-
-        # generate embedding for each image in the dataset
+    ) -> None:
         vector_index = faiss.IndexFlatIP(512)
-        for i, example in tqdm.tqdm(enumerate(self.dataset)):
-            image = example["image"]
+        for row in tqdm.tqdm(self.dataset, desc=f"Building index for {self.current_index_type.value}"):
+            image = row["image"]
+            # Only improvement would be to use a batch and then using 
+            # the gpu would be beneficial, increasing however code complexity.
+            # Since is not a performance critical operation, we can keep it simple
             patches = self.image_transform(image).unsqueeze(0).to(self.device)
             image_features = self.model.get_image_features(patches).detach().cpu().numpy()
             vector_index.add(image_features)
@@ -193,6 +215,9 @@ class QueryHelper:
         faiss.write_index(vector_index, str(index_path))
 
     def query(self, query: str | PILImage, top_k: int, index_type: IndexType = None) -> list[QueryResult]:
+        # TODO: When the other dataset is ready uncomment this line
+        # self._switch_dataset(index_type) 
+
         embeddings = None
         if isinstance(query, str):
             # query is a text to be embedded
@@ -214,25 +239,26 @@ class QueryHelper:
         for i, idx in enumerate(I[0]):
             image = self.dataset[int(idx)]["image"]
             
-            additional_info = StringIO()
-            for key, value in self.dataset[int(idx)].items():
-                if key != "image":
-                    additional_info.write(f"{key}: {value}\n")
+            # additional_info = StringIO()
+            # for key, value in self.dataset[int(idx)].items():
+            #     if key != "image":
+            #         additional_info.write(f"{key}: {value}\n")
             
             results.append(
                 QueryResult(
                     idx=str(idx),
                     image=image,
-                    additional_info=additional_info.getvalue(),
+                    # additional_info=additional_info.getvalue(),
                     distance=D[0][i]
                 )
             )
 
         return results
     
-    def get_image_info(self, idx: int, index_type: IndexType = None) -> tuple[str, PILImage]:
-        additional_info = StringIO()
+    def get_image_info(self, idx: int) -> dict:
+        additional_info = dict()
         for key, value in self.dataset[idx].items():
             if key != "image":
-                additional_info.write(f"{key}: {value}\n")
-        return additional_info.getvalue(), self.dataset[idx]["image"]
+                additional_info[key] = value
+        return additional_info
+            
