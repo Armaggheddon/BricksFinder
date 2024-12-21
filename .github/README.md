@@ -42,13 +42,15 @@ BricksFinder is a fun project that combines the power of AI with the magic of LE
 
 Whether you’re a fan of LEGO or just someone trying to find that missing brick, BricksFinder is here to make your LEGO dreams a reality!
 
+![web_ui](images/webui_demo.webp)
+
 ## Features ✨
 BricksFinder combines the magic of LEGO with cutting-edge AI to offer:
 
 - **Custom LEGO Datasets 🧱:** A dataset of LEGO minifigures (completed) and an upcoming dataset for LEGO bricks.
-- **AI-Powered Search 🔍:** Fine-tuned CLIP model enabling intuitive searches via text or images.
-- **User-Friendly Web UI 🌐:** (Coming soon) Search for your favorite LEGO pieces with ease, whether you're browsing by description or uploading a photo.
-- **Live Demo on Colab 🚀:** Test the functionality instantly using our interactive Google Colab demo!
+- **AI-Powered Search 🔍:** Fine-tuned CLIP models enabling intuitive searches via text or images.
+- **User-Friendly Web UI 🌐:** Search for your favorite LEGO pieces with ease, whether you're browsing by description or uploading a photo.
+- **Live Demo on Colab 🚀:** Test the functionality instantly using the interactive Google Colab demo!
 
 Discover. Search. Build. BricksFinder makes your LEGO journey smarter and more fun! 🚀✨
 
@@ -66,7 +68,7 @@ A massive shoutout to the [Rebrickable](https://rebrickable.com/) team for provi
 ## Model Fine-Tuning 🧠
 BricksFinder takes advantage of two fine-tuned CLIP model (ViT-B/32) to power its search capabilities:
 
-- `clip-vit-base-patch32_lego-minifigure`: The model has been fine-tuned on the LEGO minifigure dataset. The model is available on [HuggingFace](https://huggingface.co/armaggheddon97/clip-vit-base-patch32_lego-minifigure).
+- `clip-vit-base-patch32_lego-minifigure`: The model has been fine-tuned on the LEGO minifigure dataset, available on [HuggingFace](https://huggingface.co/armaggheddon97/clip-vit-base-patch32_lego-minifigure).
 - `clip-vit-base-patch32_lego-brick`: Fine-tuning for the LEGO brick dataset is planned and will be added once the dataset is complete.
 
 You can also see the fine-tuned models in action via the Colab live demo! 🚀 <a target="_blank" href="https://colab.research.google.com/github/Armaggheddon/BricksFinder/blob/main/live_demo/live_demo.ipynb">
@@ -85,13 +87,14 @@ Give it a try on the live demo and experience the magic of LEGO search firsthand
   <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
 </a>
 
-The first startup of the Web UI may take a few minutes depending on the hardware used. On colab, using the free Tesla T4 GPU, it takes around 5 minutes for the minifigure dataset. The brick dataset, when ready, will take longer due to the larger size of the dataset. The required models and datasets are also downloaded during the first startup.
 > [!NOTE]
+> The first startup of the Web UI may take a few minutes depending on the hardware used. On colab, using the free Tesla T4 GPU, it takes around 5 minutes for the minifigure dataset. The brick dataset, when ready, will take longer due to the larger size of the dataset. The required models and datasets are also downloaded during the first startup.
+> [!TIP]
 > On Colab, unless you save the environment, the data will be lost when closing the notebook. If you plan to reuse the application, make sure to save the environment or download the required files.
 
 
 ## Installation and Usage ⚙️
-BricksFinder is designed to be easy to use and accessible to everyone! 🚀 it uses a Docker container at its core and uses Docker Compose for easier setup. To gte BricksFinder up and running locally, follow these steps:
+BricksFinder is designed to be easy to use and accessible to everyone! 🚀 it uses a Docker container at its core and uses Docker Compose for easier setup. To get BricksFinder up and running locally, follow these steps:
 
 1. **Clone the Repository:**
    ```bash
@@ -99,7 +102,7 @@ BricksFinder is designed to be easy to use and accessible to everyone! 🚀 it u
    cd BricksFinder
    ```
 2. **Build and Run the Docker Container:**
-   Two containers are available depending on the available hardware:
+   Two containers are available depending on the available hardware in the `bricks_finder` folder:
     - `docker-compose.yml` for CPU-only
         ```bash
         docker compose up --build
@@ -113,7 +116,8 @@ BricksFinder is designed to be easy to use and accessible to everyone! 🚀 it u
     Once the container is up and running, and all the required models and datasets are downloaded and the index has been built, you can access the Web UI at `http://localhost:8000/`.
 
 
-As for the Gradio live demo, the first startup may take a few minutes depending on the hardware used and the available internet speed. However when run locally, this will happen only the first time a specific dataset is used and subsequent runs will use the cached data.
+> [!NOTE]
+> As for the Gradio live demo, the first startup may take a few minutes depending on the hardware used and the available internet speed. However when run locally, this will happen only the first time a specific dataset is used and subsequent runs will use the cached data.
 
 > [!TIP]
 > When using the GPU container, make sure to have both the latest Nvidia drivers (>= 560 or later) and the latest version of the Nvidia Container Toolkit installed. For more information, refer to the [Installing the NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
