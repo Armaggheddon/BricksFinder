@@ -52,23 +52,53 @@ h4 {
 with gr.Blocks(css=css) as interface:
     with gr.Column():
         gr.Markdown("# BricksFinder")
-        gr.Markdown("#### *For more information, visit the [GitHub repository](https://github.com/armaggheddon/BricksFinder)*")
+        gr.Markdown(
+            "#### *For more information, visit the [GitHub repository]"
+            "(https://github.com/armaggheddon/BricksFinder)*"
+        )
         
     with gr.Row():
         with gr.Column():
-            text_query = gr.Textbox(label="Text Query", placeholder="a woman wearing a yellow shirt with a pen holder, brown trousers and red hair")
-            index_radio = gr.Radio(label="Search for", choices=["minifigure", "brick"], value="minifigure", interactive=True)
+            text_query = gr.Textbox(
+                label="Text Query", 
+                placeholder=(
+                    "a woman wearing a yellow shirt with a pen holder, brown "
+                    "trousers and red hair"
+                )
+            )
+            index_radio = gr.Radio(
+                label="Search for", 
+                choices=[IndexType.MINIFIGURE.value, IndexType.BRICK.value], 
+                value=IndexType.MINIFIGURE.value, 
+                interactive=True
+            )
             with gr.Accordion(label="More options", open=False):
-                result_count_slider = gr.Slider(label="Number of Results", minimum=8, maximum=16, value=8, step=1, interactive=True)
+                result_count_slider = gr.Slider(
+                    label="Number of Results", 
+                    minimum=8, 
+                    maximum=16, 
+                    value=8, 
+                    step=1, 
+                    interactive=True
+                )
             with gr.Row():
                 clear_btn = gr.Button(value="Clear")
                 search_btn = gr.Button(value="Search", variant="primary")
         with gr.Column():
             image_query = gr.Image(label="Image Query")
     with gr.Row():
-        image_gallery = gr.Gallery(label="Results", columns=4, height="auto", interactive=False)
+        image_gallery = gr.Gallery(
+            label="Results", 
+            columns=4, 
+            height="auto", 
+            interactive=False
+        )
     with gr.Row():
-        additional_information = gr.Markdown(value="### Additional Information\n", show_label=True, container=True)
+        additional_information = gr.Markdown(
+            value="### Additional Information\n", 
+            show_label=True, 
+            container=True
+        )
 
     
     clear_btn.click(
@@ -97,6 +127,14 @@ with gr.Blocks(css=css) as interface:
         get_image_info,
         inputs=None,
         outputs=[additional_information]
+    )
+
+    def index_radio_change(radio_value):
+        if radio_value == IndexType.BRICK.value:
+            gr.Warning(message="Brick index is not available yet", duration=3)
+    index_radio.input(
+        index_radio_change,
+        inputs=index_radio
     )
 
 
