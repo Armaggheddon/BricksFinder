@@ -1,2 +1,2 @@
 vector_indexes/minifigures/*
-# !vector_indexes/minifigures/index.faiss # uncomment this line if you want to keep the index file
+vector_indexes/bricks/*
