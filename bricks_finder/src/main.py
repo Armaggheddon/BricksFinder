@@ -10,6 +10,7 @@ from query_helper import QueryHelper, IndexType, QueryResult
 
 THIS_PATH = Path(__file__).parent.parent
 VECTOR_INDEX_ROOT = THIS_PATH / "vector_indexes"
+STATIC_RESOURCES = THIS_PATH / "src" / "static"
 
 query_helper = QueryHelper(VECTOR_INDEX_ROOT)
 
@@ -51,7 +52,11 @@ h4 {
 
 with gr.Blocks(css=css) as interface:
     with gr.Column():
-        gr.Markdown("# BricksFinder")
+        gr.HTML(
+            "<img "
+            f"src='/gradio_api/file={str(STATIC_RESOURCES/"bricksfinder.png")}' "
+            "alt='BrickFinder' max-height='100px' align='center'>"
+        )
         gr.Markdown(
             "#### *For more information, visit the [GitHub repository]"
             "(https://github.com/armaggheddon/BricksFinder)*"
@@ -85,7 +90,7 @@ with gr.Blocks(css=css) as interface:
                 clear_btn = gr.Button(value="Clear")
                 search_btn = gr.Button(value="Search", variant="primary")
         with gr.Column():
-            image_query = gr.Image(label="Image Query")
+            image_query = gr.Image(label="Image Query", type="pil")
     with gr.Row():
         image_gallery = gr.Gallery(
             label="Results", 
@@ -173,5 +178,7 @@ if __name__ == "__main__":
     interface.launch(
         server_name="0.0.0.0",
         server_port=8000,
-        share=args.share
+        share=args.share,
+        allowed_paths=[str(STATIC_RESOURCES)],
+        max_file_size=50 * gr.FileSize.MB,
     )
