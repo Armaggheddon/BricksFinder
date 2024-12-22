@@ -54,7 +54,7 @@ with gr.Blocks(css=css) as interface:
     with gr.Column():
         gr.HTML(
             "<img "
-            f"src='/gradio_api/file={str(STATIC_RESOURCES/"bricksfinder.png")}' "
+            f"src='/gradio_api/file={str(STATIC_RESOURCES/'bricksfinder.png')}' "
             "alt='BrickFinder' max-height='100px' align='center'>"
         )
         gr.Markdown(
