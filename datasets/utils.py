@@ -157,7 +157,7 @@ def download_images(
         curr_retries = 0
         is_downloaded = False
 
-        image_path = download_path / f"{row["idx"]}.jpg"
+        image_path = download_path / f"{row['idx']}.jpg"
 
         while not is_downloaded and curr_retries < max_retries:
             try:

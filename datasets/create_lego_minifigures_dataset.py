@@ -30,10 +30,10 @@ CREATE_AND_UPLOAD_DATASET = False
 THIS_PATH = Path(os.path.dirname(os.path.abspath(__file__)))
 
 RAW_DATA_ROOT = THIS_PATH / "raw_data"
-MINIFIGURES_DATASET_ROOT = THIS_PATH / "lego_minifigures_captions"
-DATASET_IMAGES_PATH = MINIFIGURES_DATASET_ROOT / "images"
-DATASET_PARQUET_PATH = MINIFIGURES_DATASET_ROOT / "data"
-DATASET_CAPTIONS_PATH = MINIFIGURES_DATASET_ROOT / "captions"
+DATASET_ROOT = THIS_PATH / "lego_minifigures_captions"
+DATASET_IMAGES_PATH = DATASET_ROOT / "images"
+DATASET_PARQUET_PATH = DATASET_ROOT / "data"
+DATASET_CAPTIONS_PATH = DATASET_ROOT / "captions"
 
 ROOT_PARQUET = "minifigures_no_img.parquet"
 MINIFIGS_PARQUET = "minifigs.parquet"
@@ -98,7 +98,7 @@ def create_root_parquet():
             "part_num"
         ]
     ]
-    result_df.to_parquet(MINIFIGURES_DATASET_ROOT / ROOT_PARQUET)
+    result_df.to_parquet(DATASET_ROOT / ROOT_PARQUET)
 
 def remove_missing_rows(dataframe: pd.DataFrame):
     """
@@ -181,7 +181,7 @@ def upload_dataset_to_hf(dataframe: pd.DataFrame):
 
 if __name__ == "__main__":
     utils.touch_folder(RAW_DATA_ROOT)
-    utils.touch_folder(MINIFIGURES_DATASET_ROOT)
+    utils.touch_folder(DATASET_ROOT)
     utils.touch_folder(DATASET_CAPTIONS_PATH)
     utils.touch_folder(DATASET_IMAGES_PATH)
     utils.touch_folder(DATASET_PARQUET_PATH)
@@ -199,14 +199,14 @@ if __name__ == "__main__":
                 key, value = env_var.split("=")
                 os.environ[key] = value.strip("\"")
         _ = os.environ["HF_TOKEN"]
-        _ = os.environ["GEMINI_API_KEYS"]
+        _ = os.environ["GEMINI_API_KEY"]
     except FileNotFoundError:
         logger.error("No .env file found, did you forget to rename example.env?")
         logger.info("Setting CREATE_AND_UPLOAD_DATASET to False")
         CREATE_AND_UPLOAD_DATASET = False
     except KeyError:
         logger.error("Check if both HF_TOKEN and GEMINI_API_KEY have been set in the .env file")
-        logger.info("Setting CREATE_AND_UPLOAD_DATASET and CREATE_GEMINI_CAPTIONS to False")
+        logger.warning("Setting CREATE_AND_UPLOAD_DATASET and CREATE_GEMINI_CAPTIONS to False")
         CREATE_AND_UPLOAD_DATASET = False
         CREATE_GEMINI_CAPTIONS = False
 
@@ -216,21 +216,21 @@ if __name__ == "__main__":
     if DOWNLOAD_IMAGES:
         utils.download_images(
             dataframe=pd.read_parquet(
-                MINIFIGURES_DATASET_ROOT / "minifigures_no_img.parquet"),
+                DATASET_ROOT / "minifigures_no_img.parquet"),
             image_column="img_url",
             download_path=DATASET_IMAGES_PATH
         )
 
         remove_missing_rows(
             pd.read_parquet(
-                MINIFIGURES_DATASET_ROOT / "minifigures_no_img.parquet"
+                DATASET_ROOT / "minifigures_no_img.parquet"
             )
         )
 
     if CREATE_GEMINI_CAPTIONS:
         utils.CaptionGenerator(
             dataframe=pd.read_parquet(
-                MINIFIGURES_DATASET_ROOT / "minifigures_no_img.parquet"
+                DATASET_ROOT / "minifigures_no_img.parquet"
             ),
             images_path=DATASET_IMAGES_PATH,
             captions_path=DATASET_CAPTIONS_PATH,
@@ -240,6 +240,6 @@ if __name__ == "__main__":
     if CREATE_AND_UPLOAD_DATASET:
         upload_dataset_to_hf(
             pd.read_parquet(
-                MINIFIGURES_DATASET_ROOT / "minifigures_no_img.parquet"
+                DATASET_ROOT / "minifigures_no_img.parquet"
             )
         )
