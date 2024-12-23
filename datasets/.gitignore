@@ -1,3 +1,4 @@
 raw_data/*.csv
 .dataset/
 gemini_api_keys.json
+.env
