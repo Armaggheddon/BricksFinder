@@ -2,14 +2,28 @@
 license: mit
 dataset_info:
   features:
-  - name: fig_num
-    dtype: string
   - name: image
     dtype: image
   - name: short_caption
     dtype: string
   - name: caption
     dtype: string
+  - name: fig_num
+    dtype: string
+  - name: num_parts
+    dtype: int64
+  - name: minifig_inventory_id
+    sequence: int64
+  - name: part_inventory_id
+    dtype: int64
+  - name: part_num
+    sequence: string
+  splits:
+  - name: train
+    num_bytes: 597626808
+    num_examples: 12966
+  download_size: 558421106
+  dataset_size: 597626808
 language:
 - en
 tags:
@@ -21,12 +35,16 @@ task_categories:
 - image-to-text
 - text-to-image
 pretty_name: Lego Minifigure Captions
+configs:
+- config_name: default
+  data_files:
+  - split: train
+    path: data/train-*
 ---
 
 # LEGO Minifigure Captions
 
 The **LEGO Minifigure Captions** dataset contains 12966 images of LEGO minifigures with captions. The dataset contains the following columns:
-- `fig_num`: The figure number of the minifigure as in the original csv file from Rebrickable.
 - `image`: The jpeg image of the minifigure in the format `{"bytes": bytes, "path": str}` so that can be interpreted as `PIL.Image` objects in the huggingface `datasets` library.
 - `short_caption`: The short caption describing the minifigure in the image.
 - `caption`: The caption describing the minifigure which is generated using Gemini-1.5-flash with the following prompt:
@@ -39,6 +57,11 @@ The **LEGO Minifigure Captions** dataset contains 12966 images of LEGO minifigur
       "while remaining concise. Caption the image"
     )
     ```
+- `fig_num`: The figure number of the minifigure as in the original csv file from Rebrickable.
+- `num_parts`: The number of parts that the minifigure is made of.
+- `minifig_inventory_id`: The inventory id of the minifigure in the Rebrickable database.
+- `part_inventory_id`: The inventory id of the part in the Rebrickable database.
+- `part_num`: The part numbers that the minifigure is made of, which can be directly searched on the Rebrickable website.
 
 The data has been collected from the [Rebrickable](https://rebrickable.com/downloads/) website and the images have been downloaded from the column `img_url` in original *minifigs.csv* file from the website. 
 

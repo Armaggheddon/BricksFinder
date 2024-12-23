@@ -8,17 +8,15 @@ This code generates 2 datasets:
 The code is divided into 3 main files:
 - `create_lego_brick_dataset.py`: This file creates the `lego_brick_captions` dataset.
 - `create_lego_minifigure_dataset.py`: This file creates the `lego_minifigure_captions` dataset.
-- `create_captions.py`: This file contains the functions to create the captions for the images using the Gemini APIs.
+- `download_and_convert_raw.py`: This file downloads the raw data from the Rebrickable website and converts it to parquet files.
+
+Before running the `create_..._dataset.py` files, the `download_and_convert_raw.py` file must be run to download the raw data from the Rebrickable website and convert it to parquet files since the `create_..._dataset.py` files rely on the parquet files created by `download_and_convert_raw.py`.
 
 For both `create_..._dataset.py` files, the following steps are performed:
-1. Download the original csv files from the Rebrickable website.
-1. Convert the csv files to parquet files. This is mostly for convinience and to reduce the size of the dataset.
 1. Create a parquet file with all the informations aggregated in a single file.
-1. Download the images for each item.
-1. Create the final parquet file with the images, the captions are still missing.
+1. Download the images for each item, and remove the items without images.
 1. Create the captions for the images using the Gemini APIs.
-1. Merge the captions with the parquet dataset.
-1. Create a zip file including the final parquet files. This step is optional and was only useful due to the fact that I used a remote machine to run this code
+1. Merge the captions with the parquet dataset, converts the required columns to a pyarrow table and then loads them as a Hugging Face Dataset. Finally the dataset is uploaded to the Hugging Face Hub (requires an API key with the right permissions).
 
 
 As an important note, I want to mention that all the data for the starting point of this dataset is from the Rebrickable website. They have done an amazing job collecting all the information about Lego bricks and minifigures. I have only used their data to create this dataset, and have added the captions using Gemini 1.5 Flash (002).
@@ -38,13 +36,10 @@ pip install -r requirements.txt
 
 ## Usage
 Each of the `create_..._dataset.py` files can be run independently. On top of each of the files there are a couple of options:
-- `DOWNLOAD_CSVS`: If set to `True`, the original csv files from the Rebrickable website will be downloaded.
-- `CONVERT_CSVS_TO_PARQUET`: If set to `True`, the csv files will be converted to parquet files.
-- `CREATE_ROOT_PARQUET`: If set to `True`, a parquet file with all the informations aggregated in a single file will be created.
-- `DOWNLOAD_IMAGES`: If set to `True`, the images for each item will be downloaded in a folder named `images` in the same folder as the dataset name.
-- `CREATE_GEMINI_CAPTIONS`: If set to `True`, the captions for the images will be created using the Gemini APIs.
-- `CREATE_PARQUET`: If set to `True`, the final parquet file with the images and captions will be created.
-- `CREATE_ZIP`: If set to `True`, a zip file with the final parquet file will be created.
+- `CREATE_ROOT_PARQUET`: If set to `True`, a parquet file with all the informations aggregated in a single file will be created, this file is required for the next steps.
+- `DOWNLOAD_IMAGES`: If set to `True`, the images for each item will be downloaded in a folder named `images` in `.jpg` format.
+- `CREATE_GEMINI_CAPTIONS`: If set to `True`, the captions for the images will be created using the Gemini APIs and saved in the `captions` folder as `.json`.
+- `CREATE_AND_UPLOAD_DATASET`: If set to `True`, the captions will be merged with the parquet dataset, converts the required columns to a pyarrow table and then loads them as a Hugging Face Dataset. Finally the dataset is uploaded to the Hugging Face Hub (requires an API key with the right permissions).
 
 The code is already set to run all the steps in the `create_..._dataset.py` files. If you want to run only a subset of the steps, you can change the variables at the top of the file.
 
@@ -59,16 +54,16 @@ The code is already set to run all the steps in the `create_..._dataset.py` file
 This folder already contains more than enought data to be used for both the dataset creation and more. The data available is:
 
 - `lego_brick_captions`: **COMING SOON**
-- `lego_minifigure_captions`: 
-    - `minifigures_no_img.parquet`: parquet containing `file_name`, `img_url`, `fig_num`, `name`, `num_parts`, `inventory_id`. The first row contains the following information:
-        | file_name | img_url | fig_num | name | num_parts | inventory_id |
-        |-----------|---------|---------|------|-----------|--------------|
-        | 0.jpg |  https://cdn.rebrickable.com/media/sets/fig-000001.jpg | fig-000001 | Toy Store Employee | 4 | [42484] |
+- `lego_minifigure_captions`: this is the working directory used for creating the dataset. The final dataset is available in the [Hugging Face datasets](https://huggingface.co/datasets/armaggheddon97/lego_minifigure_captions).
 - `raw_data`: 
     - `colors.parquet`: parquet containing `id`, `name`, `rgb`, `is_trans`. The first row contains the following information:
         | id | name | rgb | is_trans |
         |----|------|-----|----------|
         | 0 | Black | 05131D | false |
+    - `inventories.parquet`: parquet containing `id`, `version`, `set_num`. The first row contains the following information:
+        | id | version | set_num |
+        |----|---------|---------|
+        | 1 | 1 | 7922-1 |
     - `inventory_minifigs.parquet`: parquet containing `inventory_id`, `fig_num`, `quantity`. The first row contains the following information:
         | inventory_id | fig_num | quantity |
         |--------------|---------|----------|
