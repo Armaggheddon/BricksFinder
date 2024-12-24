@@ -1,9 +1,13 @@
 import os
 from pathlib import Path
 import urllib.request
+import json
 
 from loguru import logger
 import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
+from datasets import Dataset
 
 import utils
 
@@ -15,7 +19,7 @@ CREATE_ROOT_PARQUET = False
 # Roughly 1.3 million images, not counting for
 # not working urls, etc. So setting this to True
 # will take a lot of time and space.
-DOWNLOAD_IMAGES = False
+DOWNLOAD_IMAGES = True
 
 # Generate captions for the images using the Gemini model.
 CREATE_GEMINI_CAPTIONS = False
@@ -35,7 +39,6 @@ DATASET_CAPTIONS_PATH = DATASET_ROOT / "captions"
 INVENTORY_PARTS_PARQUET = "inventory_parts.parquet"
 PARTS_PARQUET = "parts.parquet"
 COLORS_PARQUET = "colors.parquet"
-PART_CATEGORIES_PARQUET = "part_categories.parquet"
 
 def create_root_parquet():
     """
@@ -50,20 +53,131 @@ def create_root_parquet():
     logger.info(f"Loaded: {PARTS_PARQUET}")
     colors = pd.read_parquet(RAW_DATA_ROOT / COLORS_PARQUET)
     logger.info(f"Loaded: {COLORS_PARQUET}")
-    part_categories = pd.read_parquet(RAW_DATA_ROOT / PART_CATEGORIES_PARQUET)
-    logger.info(f"Loaded: {PART_CATEGORIES_PARQUET}")
+
+    # delete the rows with missing images
+    inventory_parts = inventory_parts[inventory_parts["img_url"].notna()]
+
+    step_1 = inventory_parts.merge(parts, on="part_num")
+    step_1.rename(columns={"name": "short_caption"}, inplace=True)
+    step_2 = step_1.merge(colors, left_on="color_id", right_on="id")
+    step_3 = step_2.rename(columns={"name": "color_name"})
+    step_3 = step_3.drop(columns=["id"]) # drop the color "id" duplicate
+    logger.info("Merged all the dataframes")
+    
+    # group by img_url and merge the rows as list of items
+    step_4 = step_3.groupby("img_url").agg(
+        {
+            "inventory_id": list,
+            "part_num": list,
+            "short_caption": list,
+            "part_material": list,
+            "color_id": list,
+            "color_name": list,
+            "rgb": list,
+            "is_trans": list
+        }
+    ).reset_index()
+    logger.info("Grouped by img_url")
+
+    # for each row, take out the first element of the lists of all columns
+    # in a separate column, and aggregate the rest of the elements in a list
+    # of dictionaries
+    step_5 = step_4.apply(
+        lambda row: {
+            "img_url": row["img_url"],
+            "inventory_id": row["inventory_id"][0],
+            "part_num": row["part_num"][0],
+            "short_caption": row["short_caption"][0],
+            "part_material": row["part_material"][0],
+            "color_id": row["color_id"][0],
+            "color_name": row["color_name"][0],
+            "color_rgb": row["rgb"][0],
+            "is_trans": row["is_trans"][0],
+            "extra": [
+                {
+                    "inventory_id": row["inventory_id"][i],
+                    "part_num": row["part_num"][i],
+                    "short_caption": row["short_caption"][i],
+                    "part_material": row["part_material"][i],
+                    "color_id": row["color_id"][i],
+                    "color_name": row["color_name"][i],
+                    "color_rgb": row["rgb"][i],
+                    "is_trans": row["is_trans"][i]
+                }
+                for i in range(1, len(row["inventory_id"]))
+            ]
+        },
+        axis=1    
+    )
+    step_5 = pd.DataFrame(step_5.tolist())
+    logger.info("Aggregated the data")
+
+    # add idx column
+    step_5["idx"] = range(len(step_5))
+
+    step_5.to_parquet(DATASET_ROOT / "lego_bricks_no_img.parquet")
+    logger.info("Saved the parquet file")
 
 def remove_missing_rows(dataframe: pd.DataFrame):
     """
     Remove rows from the dataframe that have missing images.
     """
-    pass
+    missing_images = len(dataframe) - len(os.listdir(DATASET_IMAGES_PATH))
+    logger.info(f"Missing images: {missing_images}")
+
+    image_files = os.listdir(DATASET_IMAGES_PATH)
+    # get the idx from the image file name as idx.jpg
+    image_idxs = [int(x.rsplit(".", maxsplit=1)[0]) for x in image_files]
+
+    # remove rows with missing images
+    dataframe = dataframe[dataframe["idx"].isin(image_idxs)]
+    logger.info(f"Removed rows with missing images, new shape: {dataframe.shape}")
+
+    dataframe.to_parquet(DATASET_PARQUET_PATH / "lego_bricks_no_img.parquet")
 
 def upload_dataset_to_hf(dataframe: pd.DataFrame):
     """
     Upload the dataset to the Hugging Face Datasets Hub.
     """
-    pass
+    table_rows = []
+    for _, row in dataframe.iterrows():
+        image_file_name = f"{row['idx']}.jpg"
+        image_file_path = DATASET_IMAGES_PATH / image_file_name
+        caption_file_name = f"{row['idx']}.json"
+        caption_file_path = DATASET_CAPTIONS_PATH / caption_file_name
+
+        image_bytes = b""
+        image_bytes = image_file_path.read_bytes()
+        with open(caption_file_path) as f:
+            caption_data = json.load(f)
+        
+        row_data = {
+            "image": {"bytes": image_bytes, "path": image_file_name},
+            "short_caption": row["short_caption"],
+            "caption": caption_data["caption"],
+            "inventory_id": row["inventory_id"],
+            "part_num": row["part_num"],
+            "part_material": row["part_material"],
+            "color_id": row["color_id"],
+            "color_name": row["color_name"],
+            "color_rgb": row["color_rgb"],
+            "is_trans": row["is_trans"],
+            "extra": row["extra"]
+        }
+        table_rows.append(row_data)
+
+    parquet_table = pa.Table.from_pylist(table_rows)
+
+    hf_dataset = Dataset.from_parquet(parquet_table)
+    hf_dataset.save_to_disk(DATASET_PARQUET_PATH)
+    hf_dataset.push_to_hub(
+        repo_id="armaggheddon97/lego_brick_captions",
+        split="train",
+        max_shard_size="200MB",
+        commit_message="Initial commit",
+        token=os.environ["HF_TOKEN"]
+    )
+    logger.success("Uploaded the dataset to the Hugging Face Hub")
 
 
 if __name__ == "__main__":
@@ -98,8 +212,6 @@ if __name__ == "__main__":
         logger.warning("Setting CREATE_AND_UPLOAD_DATASET and CREATE_GEMINI_CAPTIONS to False")
         CREATE_AND_UPLOAD_DATASET = False
         CREATE_GEMINI_CAPTIONS = False
-
-    exit()
 
     if CREATE_ROOT_PARQUET:
         create_root_parquet()
