@@ -63,26 +63,30 @@ class CaptionGenerator:
             else GEMINI_BRICK_SYSTEM_PROMPT
         )
     
-    def caption(self):
-        offset_idx = 0
-        # TODO: handle already captioned images
-        # file_names = self.captions_path.glob("*.json")
-        # for file_name in file_names:
-        #     idx = int(file_name.stem)
-        #     if idx >= offset_idx:
-        #         offset_idx = idx + 1
+    def caption(self, resume: bool = True):
+        start_offset = 0
         
-        # for _ in range(offset_idx):
-        #     next(self.dataset_iterator)
+        if resume:
+            for _, row in self.dataframe.iterrows():
+                caption_file_path = self.captions_path / f"{row['idx']}.json"
+                if not caption_file_path.exists():
+                    break
+                start_offset += 1
         
-        logger.info(f"Starting from index {offset_idx}")
+        logger.info(f"Setting offset to {start_offset}")
+
+        dataframe_iter = self.dataframe.iterrows()
+        for _ in range(start_offset):
+            next(dataframe_iter)
         
         pbar = tqdm(
-            self.dataframe.iterrows(), 
-            desc=f"Captioned {offset_idx} images"
+            dataframe_iter, 
+            desc=f"Captioned {start_offset} images",
+            total=len(self.dataframe),
+            initial=start_offset
         )
 
-        for count, row in enumerate(pbar, start=offset_idx):
+        for count, row in enumerate(pbar):
             img_path = self.images_path / f"{row['idx']}.jpg"
             if not img_path.exists():
                 continue
@@ -151,14 +155,38 @@ def download_images(
     dataframe: pd.DataFrame,
     image_column: str,
     download_path: Path,
+    resume: bool = True
 ): 
     max_retries = 5
-    for _, row in dataframe.iterrows():
+    start = 0
+
+    if resume: 
+        for _, row in dataframe.iterrows():
+            image_path = download_path / f"{row['idx']}.jpg"
+            if not image_path.exists():
+                break
+            start += 1
+
+    logger.info(f"Setting start to {start}")
+
+    # consume start rows from the dataframe iterator
+    dataframe_iter = dataframe.iterrows()
+    for _ in range(start):
+        next(dataframe_iter)
+
+    pbar = tqdm(
+        dataframe_iter, 
+        desc="Downloaded xxx, failed yyy",
+        total=len(dataframe),
+        initial=start
+    )
+    downloaded_count = start
+    failed_count = 0
+    for _, row in pbar:
         curr_retries = 0
         is_downloaded = False
 
         image_path = download_path / f"{row['idx']}.jpg"
-
         while not is_downloaded and curr_retries < max_retries:
             try:
                 image = Image.open(urllib.request.urlopen(row[image_column]))
@@ -166,11 +194,14 @@ def download_images(
                 is_downloaded = True
             except Exception as e:
                 curr_retries += 1
+        
+        if is_downloaded:
+            downloaded_count += 1
+        else:
+            failed_count += 1
+        
+        pbar.set_description(f"Downloaded {downloaded_count}, failed {failed_count}")
 
 def touch_folder(folder_path: Path):
     folder_path.mkdir(parents=True, exist_ok=True)
     logger.success(f"Created folder: {folder_path}")   
-
-def zip_dataset(data_path: Path):
-    os.system(f"zip -r {data_path / 'data'}.zip {data_path}")
-    logger.success(f"Zipped data to: {data_path / 'data'}.zip")
