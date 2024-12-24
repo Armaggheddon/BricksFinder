@@ -116,7 +116,7 @@ def remove_missing_rows(dataframe: pd.DataFrame):
 
     # remove rows with missing images
     dataframe = dataframe[
-        dataframe["idx"].apply(lambda x: x in image_idxs)]
+        dataframe["idx"].isin(image_idxs)]
     logger.info(
         f"Removed rows with missing images, new shape: {dataframe.shape}")
 
@@ -141,20 +141,20 @@ def upload_dataset_to_hf(dataframe: pd.DataFrame):
     table_rows = []
 
     for _, row in tqdm.tqdm(dataframe.iterrows()):
-        image_name = f"{row["idx"]}.jpg"
-        image_path = DATASET_IMAGES_PATH / image_name
-        caption_name = f"{row["idx"]}.json"
-        caption_path = DATASET_CAPTIONS_PATH / caption_name
+        image_file_name = f"{row["idx"]}.jpg"
+        image_file_path = DATASET_IMAGES_PATH / image_file_name
+        caption_file_name = f"{row["idx"]}.json"
+        caption_file_path = DATASET_CAPTIONS_PATH / caption_file_name
         
         image_bytes = b""
         # if image does not exist, someone has deleted it,
         # previous steps should have removed the row from the dataframe
-        image_bytes = image_path.read_bytes() 
-        with open(caption_path) as f:
+        image_bytes = image_file_path.read_bytes() 
+        with open(caption_file_path) as f:
             caption_data = json.load(f)
         
         row_data = {
-            "image": {"bytes": image_bytes, "path": image_name}, 
+            "image": {"bytes": image_bytes, "path": image_file_name}, 
             "short_caption": row["short_caption"], 
             "caption": caption_data["caption"], 
             "fig_num": row["fig_num"], 
@@ -166,7 +166,6 @@ def upload_dataset_to_hf(dataframe: pd.DataFrame):
         table_rows.append(row_data)
     
     parquet_table = pa.Table.from_pylist(table_rows)
-    # save parquet table in multiple files with max size of 200MB
     
     hf_dataset = Dataset.from_parquet(parquet_table)
     hf_dataset.save_to_disk(DATASET_PARQUET_PATH)
