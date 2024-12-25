@@ -94,10 +94,13 @@ print(df.head())
 from datasets import load_dataset
 
 # Load the dataset in streaming mode
-ds = load_dataset("armaggheddon97/lego_minifigure_captions", split="train", streaming=True)
+streaming_ds = load_dataset("armaggheddon97/lego_minifigure_captions", split="train", streaming=True)
+# Load the dataset normally 
+ds = load_dataset("armaggheddon97/lego_minifigure_captions", split="train")
 
 # Print the dataset info
-print(next(iter(ds)))
+print(next(iter(streaming_ds)))
+print(ds[0])
 ```
 > [!TIP]
 > The `image` column using the `datasets` library is already in PIL format.
