@@ -98,7 +98,7 @@ streaming_ds = load_dataset("armaggheddon97/lego_minifigure_captions", split="tr
 # Load the dataset normally 
 ds = load_dataset("armaggheddon97/lego_minifigure_captions", split="train")
 
-# Print the dataset info
+# Print the dataset columns
 print(next(iter(streaming_ds)))
 print(ds[0])
 ```
