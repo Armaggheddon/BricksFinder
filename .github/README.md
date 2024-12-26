@@ -89,6 +89,7 @@ Give it a try on the live demo and experience the magic of LEGO search firsthand
 
 > [!NOTE]
 > The first startup of the Web UI may take a few minutes depending on the hardware used. On colab, using the free Tesla T4 GPU, it takes around 5 minutes for the minifigure dataset. The brick dataset, when ready, will take longer due to the larger size of the dataset. The required models and datasets are also downloaded during the first startup.
+
 > [!TIP]
 > On Colab, unless you save the environment, the data will be lost when closing the notebook. If you plan to reuse the application, make sure to save the environment or download the required files.
 
