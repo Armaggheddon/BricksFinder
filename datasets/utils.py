@@ -19,7 +19,20 @@ GEMINI_MINIFIGURE_SYSTEM_PROMPT = (
     "and theme. Avoid generic terms and aim for specificity, "
     "while remaining concise. Caption the image"
 )
-GEMINI_BRICK_SYSTEM_PROMPT = ("")
+GEMINI_BRICK_SYSTEM_PROMPT = (
+    "Analyze the provided image of a Lego piece. Provide a concise, "
+    "objective description of the piece's shape, size, key features, "
+    "connection points, and any distinctive surface markings or patterns. "
+    "Include the color of the piece, using a specific color if possible "
+    "(e.g., 'bright red', 'dark bluish gray', 'light yellow'). Be precise "
+    "in describing studs, holes, connection types, and the nature of any "
+    "printed designs or surface features. Use standard Lego terminology "
+    "(stud, axle hole, etc.). If possible, use stud equivalents for "
+    "length, width, and height (e.g., '1x2 brick'). The description "
+    "must be within 50-60 words and should start directly with the "
+    "description of the piece itself, avoiding phrases like 'The "
+    "image shows...'. Aim for brevity while maintaining all key details."
+)
 
 GEMINI_API_KEYS_PATH = Path(__file__).parent / "gemini_api_keys.json"
 
@@ -81,19 +94,23 @@ class CaptionGenerator:
         
         pbar = tqdm(
             dataframe_iter, 
-            desc=f"Captioned {start_offset} images",
+            desc=f"Captioned: {start_offset}, failed: 0",
             total=len(self.dataframe),
             initial=start_offset
         )
-
-        for count, row in enumerate(pbar):
+        captioned_count = start_offset
+        failed_count = 0
+        for _, row in enumerate(pbar):
             img_path = self.images_path / f"{row['idx']}.jpg"
             if not img_path.exists():
                 continue
             img = Image.open(img_path)
-            self._caption_img(row["idx"], img)
-
-            pbar.set_description(f"Captioned {count} images")
+            if self._caption_img(row["idx"], img):
+                captioned_count += 1
+            else:
+                failed_count += 1
+            
+            pbar.set_description(f"Captioned: {captioned_count}, failed: {failed_count}")
         
         logger.success("Finished generating captions.")
 
@@ -149,6 +166,7 @@ class CaptionGenerator:
                     "image_idx": idx,
                     "caption": ""
                 }))
+        return is_success
             
 
 def download_images(
