@@ -143,13 +143,20 @@ def upload_dataset_to_hf(dataframe: pd.DataFrame):
     for _, row in dataframe.iterrows():
         image_file_name = f"{row['idx']}.jpg"
         image_file_path = DATASET_IMAGES_PATH / image_file_name
+        if not image_file_path.exists():
+            continue
         caption_file_name = f"{row['idx']}.json"
         caption_file_path = DATASET_CAPTIONS_PATH / caption_file_name
+        if not caption_file_path.exists():
+            continue
 
         image_bytes = b""
         image_bytes = image_file_path.read_bytes()
         with open(caption_file_path) as f:
             caption_data = json.load(f)
+        if not caption_data["caption"] or caption_data["caption"] == "":
+            # if the caption is empty, skip the row
+            continue
         
         row_data = {
             "image": {"bytes": image_bytes, "path": image_file_name},
