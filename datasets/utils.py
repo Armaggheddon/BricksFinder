@@ -100,7 +100,7 @@ class CaptionGenerator:
         )
         captioned_count = start_offset
         failed_count = 0
-        for _, row in enumerate(pbar):
+        for _, row in pbar:
             img_path = self.images_path / f"{row['idx']}.jpg"
             if not img_path.exists():
                 continue
