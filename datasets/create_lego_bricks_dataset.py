@@ -3,6 +3,7 @@ from pathlib import Path
 import urllib.request
 import json
 
+import tqdm
 from loguru import logger
 import pandas as pd
 import pyarrow as pa
@@ -19,13 +20,13 @@ CREATE_ROOT_PARQUET = False
 # Roughly 1.3 million images, not counting for
 # not working urls, etc. So setting this to True
 # will take a lot of time and space.
-DOWNLOAD_IMAGES = True
+DOWNLOAD_IMAGES = False
 
 # Generate captions for the images using the Gemini model.
 CREATE_GEMINI_CAPTIONS = False
 
 # Create the final dataset parquet files.
-CREATE_AND_UPLOAD_DATASET = False
+CREATE_AND_UPLOAD_DATASET = True
 
 
 THIS_PATH = Path(os.path.dirname(os.path.abspath(__file__)))
@@ -140,7 +141,7 @@ def upload_dataset_to_hf(dataframe: pd.DataFrame):
     Upload the dataset to the Hugging Face Datasets Hub.
     """
     table_rows = []
-    for _, row in dataframe.iterrows():
+    for _, row in tqdm.tqdm(dataframe.iterrows()):
         image_file_name = f"{row['idx']}.jpg"
         image_file_path = DATASET_IMAGES_PATH / image_file_name
         if not image_file_path.exists():
@@ -157,13 +158,12 @@ def upload_dataset_to_hf(dataframe: pd.DataFrame):
         if not caption_data["caption"] or caption_data["caption"] == "":
             # if the caption is empty, skip the row
             continue
-        
         row_data = {
             "image": {"bytes": image_bytes, "path": image_file_name},
             "short_caption": row["short_caption"],
             "caption": caption_data["caption"],
-            "inventory_id": row["inventory_id"],
             "part_num": row["part_num"],
+            "inventory_id": row["inventory_id"],
             "part_material": row["part_material"],
             "color_id": row["color_id"],
             "color_name": row["color_name"],
@@ -171,12 +171,26 @@ def upload_dataset_to_hf(dataframe: pd.DataFrame):
             "is_trans": row["is_trans"],
             "extra": row["extra"]
         }
+        # row_data = {
+        #     "image": {"bytes": image_bytes, "path": image_file_name},
+        #     "short_caption": row["short_caption"],
+        #     "caption": caption_data["caption"],
+        #     "inventory_id": row["inventory_id"],
+        #     "part_num": row["part_num"],
+        #     "part_material": row["part_material"],
+        #     "color_id": row["color_id"],
+        #     "color_name": row["color_name"],
+        #     "color_rgb": row["color_rgb"],
+        #     "is_trans": row["is_trans"],
+        #     "extra": row["extra"]
+        # }
         table_rows.append(row_data)
 
     parquet_table = pa.Table.from_pylist(table_rows)
+    pq.write_table(parquet_table, DATASET_PARQUET_PATH / "lego_bricks.parquet")
 
-    hf_dataset = Dataset.from_parquet(parquet_table)
-    hf_dataset.save_to_disk(DATASET_PARQUET_PATH)
+    hf_dataset = Dataset.from_parquet(str(DATASET_PARQUET_PATH / "lego_bricks.parquet"))
+    hf_dataset.save_to_disk(str(DATASET_PARQUET_PATH))
     hf_dataset.push_to_hub(
         repo_id="armaggheddon97/lego_brick_captions",
         split="train",
