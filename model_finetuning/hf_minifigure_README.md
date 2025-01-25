@@ -17,7 +17,7 @@ pipeline_tag: zero-shot-classification
 This model is a finetuned version of the `openai/clip-vit-base-patch32` CLIP (Contrastive Language-Image Pretraining) model on the [`lego_minifigure_captions`](https://huggingface.co/datasets/armaggheddon97/lego_minifigure_captions), specialized for matching images of Lego minifigures with their corresponding textual description.
 
 > [!NOTE] 
-> If you are interested on the code used refer to the finetuning script on my [GitHub](https://github.com/Armaggheddon/BricksFinder/blob/main/model_finetuning/src/minifig_finetune.py)
+> If you are interested on the code used refer to the finetuning script on my [GitHub](https://github.com/Armaggheddon/BricksFinder/blob/main/model_finetuning/src/finetune.py)
 
 ## Model Description
 
@@ -25,7 +25,7 @@ This model is a finetuned version of the `openai/clip-vit-base-patch32` CLIP (Co
 - **Model type:** The model is a CLIP (Contrastive Language-Image Pretraining) model.
 - **Language:** The model is expects English text as input.
 - **License:** The model is licensed under the MIT license.
-- **Finetuned from model clip-vit-base-patch32:** The model is a finetuned version of the `openai/clip-vit-base-patch32` model on the `lego_minifigure_captions` dataset. The model has been finetuned for 7 epochs on a 80-20 train-validation split of the dataset. For more details on the finetune script take a look at the code on my [GitHub](https://github.com/Armaggheddon/BricksFinder/blob/main/model_finetuning/src/minifig_finetune.py).
+- **Finetuned from model clip-vit-base-patch32:** The model is a finetuned version of the `openai/clip-vit-base-patch32` model on the `lego_minifigure_captions` dataset. The model has been finetuned for 7 epochs on a 80-20 train-validation split of the dataset. For more details on the finetune script take a look at the code on my [GitHub](https://github.com/Armaggheddon/BricksFinder/blob/main/model_finetuning/src/finetune.py).
 
 ## Usage with 🤗 transformers
 - Load the model and processor using the following code snippet:
@@ -35,21 +35,21 @@ This model is a finetuned version of the `openai/clip-vit-base-patch32` CLIP (Co
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    model = CLIPModel.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-minifigures", device_map="auto").to(device)
-    processor = CLIPProcessor.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-minifigures", device_map="auto").to(device)
+    model = CLIPModel.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-minifigure", device_map="auto").to(device)
+    processor = CLIPProcessor.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-minifigure", device_map="auto").to(device)
     ```
 - Using `Auto` classes:
     ```python
     from transformers import AutoModelForZeroShotImageClassification, AutoProcessor
 
-    model = AutoModelForZeroShotImageClassification.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-minifigures")
-    processor = AutoProcessor.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-minifigures")
+    model = AutoModelForZeroShotImageClassification.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-minifigure")
+    processor = AutoProcessor.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-minifigure")
     ```
 - Using with `pipeline`:
     ```python
     from transformers import pipeline
 
-    model = "armaggheddon97/clip-vit-base-patch32_lego-minifigures"
+    model = "armaggheddon97/clip-vit-base-patch32_lego-minifigure"
     clip_classifier = pipeline("zero-shot-image-classification", model=model)
     ```
 
@@ -59,8 +59,8 @@ The provided model is in float32 precision. To load the model in float16 precisi
 ```python
 from transformers import CLIPProcessor, CLIPModel
 
-model = CLIPModel.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-minifigures", dtype=torch.float16)
-processor = CLIPProcessor.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-minifigures")
+model = CLIPModel.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-minifigure", dtype=torch.float16)
+processor = CLIPProcessor.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-minifigure")
 ```
 
 or alternatively using `torch` directly with:
@@ -68,7 +68,7 @@ or alternatively using `torch` directly with:
 import torch
 from transformers import CLIPModel
 
-model = CLIPModel.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-minifigures")
+model = CLIPModel.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-minifigure")
 model_fp16 = model.to(torch.float16)
 ```
 
@@ -82,8 +82,8 @@ model_fp16 = model.to(torch.float16)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    model = CLIPModel.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-minifigures", device_map="auto").to(device)
-    tokenizer = CLIPTokenizerFast.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-minifigures")
+    model = CLIPModel.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-minifigure", device_map="auto").to(device)
+    tokenizer = CLIPTokenizerFast.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-minifigure")
 
     text = ["a photo of a lego minifigure"]
     tokens = tokenizer(text, return_tensors="pt", padding=True).to(device)
@@ -97,8 +97,8 @@ model_fp16 = model.to(torch.float16)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    model = CLIPModel.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-minifigures", device_map="auto").to(device)
-    processor = CLIPProcessor.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-minifigures", device_map="auto").to(device)
+    model = CLIPModel.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-minifigure", device_map="auto").to(device)
+    processor = CLIPProcessor.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-minifigure", device_map="auto").to(device)
 
     image = Image.open("path_to_image.jpg")
     inputs = processor(images=image, return_tensors="pt").to(device)
@@ -114,8 +114,8 @@ from datasets import load_dataset
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-model = CLIPModel.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-minifigures", device_map="auto").to(device)
-processor = CLIPProcessor.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-minifigures", device_map="auto").to(device)
+model = CLIPModel.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-minifigure", device_map="auto").to(device)
+processor = CLIPProcessor.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-minifigure", device_map="auto").to(device)
 
 dataset = load_dataset("armaggheddon97/lego_minifigure_captions", split="test")
 
@@ -142,7 +142,7 @@ The goal was to obtain a model that could more accurately distinguish minifigure
 
 and using as input image the following:
 
-![image](./images/zero_shot_sample_image.png)
+![image](./images/minifigures/zero_shot_sample_image.png)
 
 The finetuned model outputs:
 - **99.76%**: "a photo of a lego minifigure with a t-shirt with a pen holder"
@@ -157,7 +157,7 @@ while the base model for the same inputs gives:
 That shows how the finetuned model is able to more accurately classify the images based on their textual description.
 
 Running the same task across the whole dataset with 1 correct caption (always the first) and 2 randomly sampled ones, results in the following metrics:
-![results](./images/model_caption_compare.png)
+![results](./images/minifigures/model_caption_compare.png)
 
 The plot visualizes the **normalized text logits** produced by the finetuned and base models:
 - **Input:** For each sample, an image of a Lego minifigure was taken, along three captions:
