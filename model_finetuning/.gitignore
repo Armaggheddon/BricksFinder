@@ -1,4 +1,4 @@
 .env
 *.pt
-clip-vit-base-patch32_lego-minifigure/
-checkpoints/
+finetune_results/brick_finetune/*
+finetune_results/minifigure_finetune/*
