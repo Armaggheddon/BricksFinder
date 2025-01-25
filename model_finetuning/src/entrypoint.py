@@ -3,29 +3,35 @@ import os
 
 from loguru import logger
 
+from finetune import finetune
+from push_to_hub import push_to_hub
 
 THIS_PATH = Path(__file__).resolve().parent
 FINETUNE_RESULTS_ROOT = THIS_PATH.parent / "finetune_results"
 MINIFIG_FINETUNE_ROOT = FINETUNE_RESULTS_ROOT / "minifigure_finetune"
-BRICKS_FINETUNE_ROOT = FINETUNE_RESULTS_ROOT / "bricks_finetune"
+BRICKS_FINETUNE_ROOT = FINETUNE_RESULTS_ROOT / "brick_finetune"
 
-HF_TOKEN = os.environ["HF_TOKEN"]
 
 MINIFIG_CONFIG = {
     "repository_name": "clip-vit-base-patch32_lego-minifigure",
-    "repo_id": "armaggheddon97/clip-vit-base-patch32_lego-minifigure",
-    "finetune_py": str(THIS_PATH / "minifig_finetune.py"),
-    "finetune_result_path": str(
-        MINIFIG_FINETUNE_ROOT / "clip-vit-base-patch32_lego-minifigure"),
+    "model_repo_id": "armaggheddon97/clip-vit-base-patch32_lego-minifigure",
+    "dataset_id": "armaggheddon97/lego_minifigure_captions",
+    "finetune_results_path": (
+        MINIFIG_FINETUNE_ROOT / "clip-vit-base-patch32_lego-minifigure"
+    ),
+    "finetune_ckpt_path": MINIFIG_FINETUNE_ROOT / "checkpoints",
+    "finetune_log_path": MINIFIG_FINETUNE_ROOT / "logs",
 }
 BRICKS_CONFIG = {
-    "repository_name": "clip-vit-base-patch32_lego-bricks",
-    "repo_id": "armaggheddon97/clip-vit-base-patch32_lego-bricks",
-    "finetune_py": str(THIS_PATH / "bricks_finetune.py"),
-    "finetune_result_path": str(
-        BRICKS_FINETUNE_ROOT / "clip-vit-base-patch32_lego-bricks"),
+    "repository_name": "clip-vit-base-patch32_lego-brick",
+    "model_repo_id": "armaggheddon97/clip-vit-base-patch32_lego-brick",
+    "dataset_id": "armaggheddon97/lego_brick_captions",
+    "finetune_results_path": (
+        BRICKS_FINETUNE_ROOT / "clip-vit-base-patch32_lego-brick"
+    ),
+    "finetune_ckpt_path": BRICKS_FINETUNE_ROOT / "checkpoints",
+    "finetune_log_path": BRICKS_FINETUNE_ROOT / "logs",
 }
-PUSH_TO_HUB_PY = THIS_PATH / "push_to_hub.py"
 
 def get_env_args():
     push_to_hub = os.environ["PUSH_TO_HUB"]
@@ -41,32 +47,53 @@ def get_env_args():
     return {
         "push_to_hub": True if push_to_hub.lower() == "true" else False,
         "finetune": True if finetune.lower() == "true" else False,
-        "config": MINIFIG_CONFIG if dataset == "minifigure" else BRICKS_CONFIG,
+        "dataset": MINIFIG_CONFIG if dataset == "minifigure" else BRICKS_CONFIG,
     }
 
 if __name__ == "__main__":
     configs = get_env_args()
 
     logger.info(
-        f"Configs: push_to_hub={configs['push_to_hub']}, finetune={configs['finetune']}, dataset={configs['config']['repository_name']}"
+        "Arguments:\n"
+        f"Push to Hub: {configs['push_to_hub']}\n"
+        f"Finetune: {configs['finetune']}\n"
+        f"Finetuning dataset: {configs['dataset']['repository_name']}"
     )
+
+    if not FINETUNE_RESULTS_ROOT.exists():
+        logger.error(
+            f"Finetune results root directory not found at " 
+            f"{FINETUNE_RESULTS_ROOT}.\nDid you forget to mount the volume?"
+        )
+        raise FileNotFoundError("Finetune results root directory not found")
 
     if configs["finetune"]:
         # Run the finetuning script
         logger.info(f"Running finetuning for {configs['config']['repository_name']}")
-        os.system(f"python3 {configs['config']['finetune_py']}")
-        logger.success(f"Finetuning done for {configs['config']['repository_name']}")
+        finetune(
+            dataset=configs["dataset"]["dataset_id"],
+            finetune_results_path=configs["dataset"]["finetune_results_path"],
+            finetune_ckpt_path=configs["dataset"]["finetune_ckpt_path"],
+            finetune_log_path=configs["dataset"]["finetune_log_path"],
+        )
+        logger.success(f"Finetuning done for {configs['dataset']['repository_name']}")
 
     if configs["push_to_hub"]:
         # Push to the hub
-        logger.info(f"Pushing to the hub for {configs['config']['repository_name']}")
-        print(f"Pushing to the hub for {configs['config']['repository_name']}")
-        push_to_hub_arg_str = (
-            f"--hf_token={HF_TOKEN} "
-            f"--repo_id={configs['config']['repo_id']} "
-            f"--finetune_result_path={configs['config']['finetune_result_path']}"
+        HF_TOKEN = os.environ.get("HF_TOKEN", "")
+        print(HF_TOKEN)
+        if not HF_TOKEN:
+            raise ValueError("HF_TOKEN not found in environment variables")
+
+        logger.info(f"Pushing to the hub for {configs['dataset']['repository_name']}")
+        push_to_hub(
+            hf_token=HF_TOKEN,
+            repo_id=configs["dataset"]["model_repo_id"],
+            finetune_result_path=configs["dataset"]["finetune_results_path"],
         )
-        os.system(f"python3 {PUSH_TO_HUB_PY} {push_to_hub_arg_str}")
-        logger.success(f"Pushing to the hub done for {configs['config']['repository_name']}")
+        logger.success(
+            f"{configs['dataset']['repository_name']} has been pushed "
+            f"to the hub at {configs['dataset']['model_repo_id']}"
+        )
     
     logger.info("All done!")

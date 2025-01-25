@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 import argparse
 
+from loguru import logger
 from transformers import CLIPProcessor, CLIPModel
 from huggingface_hub import create_repo, login
 
@@ -27,8 +28,7 @@ def push_to_hub(
     try:
         create_repo(repo_id=repo_id, repo_type="model")
     except Exception as e:
-        print(e)
-        print(f"Repository {repo_id} already exists. Skipping creation...")
+        logger.info(f"Repository {repo_id} already exists. Skipping creation...")
 
     model.push_to_hub(
         repo_id=repo_id,
@@ -41,19 +41,5 @@ def push_to_hub(
         commit_message="Initial commit",
     )
 
-    print("Model and processor pushed to the hub successfully!")
-    print(f"at: https://huggingface.co/{repo_id}")
-
-
-def get_parser():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--hf_token", type=str, required=True, help="Hugging Face API token")
-    parser.add_argument("--repo_id", type=str, required=True, help="Repository ID")
-    parser.add_argument("--finetune_result_path", type=str, required=True, help="Path to the finetuned model")
-    return parser
-
-if __name__ == "__main__":
-    parser = get_parser()
-    args = parser.parse_args()
-    
-    push_to_hub(args.hf_token, args.repo_id, args.finetune_result_path)
+    logger.success("Model and processor pushed to the hub successfully!")
+    logger.info(f"at: https://huggingface.co/{repo_id}")
