@@ -4,9 +4,15 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: clip_finetuning
+    env_file:
+      - .env
     volumes:
       - ./finetune_results:/clip_finetune/finetune_results
-    command: python3 finetune.py
+    command: python3 src/entrypoint.py
+    ipc: host
+    ulimits:
+      memlock: -1
+      stack: 67108864
     deploy:
       resources:
         reservations:
