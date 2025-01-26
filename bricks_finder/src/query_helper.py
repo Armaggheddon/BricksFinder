@@ -2,6 +2,7 @@ from pathlib import Path
 from enum import Enum
 from io import StringIO
 from dataclasses import dataclass
+import shutil
 
 import faiss
 import tqdm
@@ -17,7 +18,8 @@ from transformers import CLIPModel, CLIPTokenizerFast
 
 HF_MINIFIGURES_DATASET_ID = "armaggheddon97/lego_minifigure_captions"
 HF_MINIFIGURE_MODEL_ID = "armaggheddon97/clip-vit-base-patch32_lego-minifigure"
-HF_BRICKS_REPO_ID = "armaggheddon97/lego_bricks_captions"
+HF_BRICKS_DATASET_ID = "armaggheddon97/lego_brick_captions"
+HF_BRICKS_MODEL_ID = "armaggheddon97/clip-vit-base-patch32_lego-brick"
 
 
 class IndexType(Enum):
@@ -49,7 +51,13 @@ class IndexPaths:
 
 
 class QueryHelper:
-    def __init__(self, vector_index_root: Path):
+    def __init__(
+            self, 
+            vector_index_root: Path,
+            startup_index: IndexType = IndexType.MINIFIGURE,
+            rebuild_indexes: bool = False,
+            invalidate_cache: bool = False
+        ) -> None:
         minifigure_root = vector_index_root / "minifigures"
         self.minifigure_paths = IndexPaths(
             root = minifigure_root,
@@ -60,15 +68,23 @@ class QueryHelper:
         )
         brick_root = vector_index_root / "bricks"
         self.brick_paths = IndexPaths(
-            root = brick_root / "dataset_cache",
-            dataset = brick_root / "model_cache",
-            model = brick_root / "tokenizer_cache",
+            root = brick_root,
+            dataset = brick_root / "dataset_cache",
+            model = brick_root / "model_cache",
             tokenizer = brick_root / "tokenizer_cache",
             index = brick_root / "index.faiss"
         )
 
+        if invalidate_cache:
+            shutil.rmtree(minifigure_root, ignore_errors=True)
+            shutil.rmtree(brick_root, ignore_errors=True)
+
         minifigure_root.mkdir(parents=True, exist_ok=True)
+        self.minifigure_paths.model.mkdir(parents=True, exist_ok=True)
+        self.minifigure_paths.tokenizer.mkdir(parents=True, exist_ok=True)
         brick_root.mkdir(parents=True, exist_ok=True)
+        self.brick_paths.model.mkdir(parents=True, exist_ok=True)
+        self.brick_paths.tokenizer.mkdir(parents=True, exist_ok=True)
 
         self.device = "cuda" if torch.cuda.is_available() else "cpu"
         self.model_dtype = torch.float16 if self.device == "cuda" else torch.float32
@@ -89,7 +105,9 @@ class QueryHelper:
         self.dataset: Dataset | None = None
         self.vector_index: faiss.IndexFlatL2 | None = None
 
-    def load_default_index(self, index_type: IndexType = IndexType.MINIFIGURE, rebuild_indexes: bool = False) -> None:
+        self._load_default_index(startup_index, rebuild_indexes)
+
+    def _load_default_index(self, index_type: IndexType = IndexType.MINIFIGURE, rebuild_indexes: bool = False) -> None:
         self.current_index_type = index_type
         if rebuild_indexes:
             logger.info("Deleting existing indexes...")
@@ -104,9 +122,17 @@ class QueryHelper:
             else:
                 logger.info("Brick index does not exist")
 
+        logger.info(f"Loading model and tokenizer for {index_type}")
         self.model, self.tokenizer = self._load_model()
+        logger.success(f"Loaded model and tokenizer for {index_type}")
+        
+        logger.info(f"Loading dataset for {index_type}")
         self.dataset = self._load_dataset()
+        logger.success(f"Loaded dataset for {index_type}")
+
+        logger.info(f"Loading vector index for {index_type}")
         self.vector_index = self._load_vector_index()
+        logger.success(f"Loaded vector index for {index_type}")
 
     def _free_resources(self):
         if self.dataset is not None:
@@ -124,7 +150,7 @@ class QueryHelper:
         hf_repo_id = (
             HF_MINIFIGURE_MODEL_ID 
             if self.current_index_type == IndexType.MINIFIGURE 
-            else HF_BRICKS_REPO_ID
+            else HF_BRICKS_MODEL_ID
         )
         model_cache = (
             self.minifigure_paths.model
@@ -152,12 +178,12 @@ class QueryHelper:
         hf_dataset_id = (
             HF_MINIFIGURES_DATASET_ID 
             if self.current_index_type == IndexType.MINIFIGURE 
-            else HF_BRICKS_REPO_ID
+            else HF_BRICKS_DATASET_ID
         )
         dataset_cache = (
             self.minifigure_paths.dataset 
             if self.current_index_type == IndexType.MINIFIGURE 
-            else self.minifigure_paths.dataset
+            else self.brick_paths.dataset
         )
         dataset = load_dataset(
             hf_dataset_id,
@@ -180,9 +206,9 @@ class QueryHelper:
         
     def _switch_index_type(self, index_type: IndexType) -> None:
         if self.current_index_type == index_type:
-            logger.info(f"Already using {index_type} dataset and model")
             return
 
+        logger.info(f"Switching {self.current_index_type} to {index_type}")
         self._free_resources()
         logger.info(f"Resources for {self.current_index_type} freed")
 
@@ -204,6 +230,14 @@ class QueryHelper:
         vector_index = faiss.IndexFlatIP(512)
         for row in tqdm.tqdm(self.dataset, desc=f"Building index for {self.current_index_type.value}"):
             image = row["image"]
+            if (im_mode := image.mode) != "RGB":
+                # Some images in brick dataset are grayscale
+                # this should handle that and more cases
+                if im_mode in ["1", "L", "P", "RGBA"]: 
+                    image = image.convert("RGB")
+                else:
+                    continue
+            
             # Only improvement would be to use a batch and then using 
             # the gpu would be beneficial, increasing however code complexity.
             # Since is not a performance critical operation, we can keep it simple
@@ -215,8 +249,7 @@ class QueryHelper:
         faiss.write_index(vector_index, str(index_path))
 
     def query(self, query: str | PILImage, top_k: int, index_type: IndexType = None) -> list[QueryResult]:
-        # TODO: When the other dataset is ready uncomment this line
-        # self._switch_dataset(index_type) 
+        self._switch_index_type(index_type)
 
         embeddings = None
         if isinstance(query, str):
