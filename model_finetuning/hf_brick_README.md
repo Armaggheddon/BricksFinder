@@ -19,6 +19,19 @@ This model is a finetuned version of the `openai/clip-vit-base-patch32` CLIP (Co
 > [!NOTE] 
 > If you are interested on the code used refer to the finetuning script on my [GitHub](https://github.com/Armaggheddon/BricksFinder/blob/main/model_finetuning/src/finetune.py)
 
+
+## 🔍 Discover the Power of This Model
+Ever struggled to figure out the name of that one elusive LEGO brick? Or maybe you’ve got a vague idea or a picture, but the exact part number’s a mystery? That’s where [BricksFinder](https://github.com/Armaggheddon/BricksFinder) comes in!
+
+Drop in a description like "blue curved slope" or upload an image of the piece, and our model will work its magic to find the closest matches. It’ll show you a list of images with bricks that look just like the one you’re thinking about—or maybe even better!
+
+![Web UI](./images/bricks/webui_demo.webp)
+
+Perfect for LEGO enthusiasts, builders, or anyone who loves a good ol’ treasure hunt among bricks. Check out the live demo on Colab and give it a try!<a target="_blank" href="https://colab.research.google.com/github/Armaggheddon/BricksFinder/blob/main/live_demo/live_demo.ipynb">
+  <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
+</a>
+
+
 ## Model Description
 
 - **Developed by:** The base model has been developed by OpenAI and the finetuned model has been developed by me, [armaggheddon97](https://huggingface.co/armaggheddon97).

@@ -19,6 +19,20 @@ This model is a finetuned version of the `openai/clip-vit-base-patch32` CLIP (Co
 > [!NOTE] 
 > If you are interested on the code used refer to the finetuning script on my [GitHub](https://github.com/Armaggheddon/BricksFinder/blob/main/model_finetuning/src/finetune.py)
 
+
+## 🤖 Minifigure Finder: Your LEGO Buddy Locator!
+
+Got a minifigure in mind but can’t recall its name or where it came from? Maybe you’ve got a picture of your favorite little guy, but no clue how to describe it? Say no more, [BricksFinder](https://github.com/Armaggheddon/BricksFinder) has you covered!
+
+Just type in something like "red shirt, pirate hat" or upload a photo of the minifigure, and voilà! You’ll get a list of matches with images of minifigs that fit your description. It’s like a LEGO buddy GPS but way cooler.
+
+![Web UI demo](./images/minifigures/webui_demo.webp)
+
+Whether you’re collecting, sorting, or just geeking out over LEGO, this tool’s here to help you connect with the minifigs you love. Try the live demo on Colab and see it in action! <a target="_blank" href="https://colab.research.google.com/github/Armaggheddon/BricksFinder/blob/main/live_demo/live_demo.ipynb">
+  <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
+</a>
+
+
 ## Model Description
 
 - **Developed by:** The base model has been developed by OpenAI and the finetuned model has been developed by me, [armaggheddon97](https://huggingface.co/armaggheddon97).
