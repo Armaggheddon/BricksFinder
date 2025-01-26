@@ -77,6 +77,21 @@ def search(text_query, image_query, index_type, result_count):
 def dict_to_markdown(data: dict):
     markdown = StringIO()
     markdown.write("### Additional Information\n")
+
+    # Experimental, add rebrickable link
+    # brick dataset has "part_num" for reference to rebrickable website
+    # while minifigure as fig_num
+    _rebrickable_base_link = "https://rebrickable.com/"
+    if "part_num" in data:
+        _rebrickable_base_link += "parts/" + data["part_num"]
+    elif "fig_num" in data:
+        _rebrickable_base_link += "minifigs/" + data["fig_num"]
+    
+    markdown.write(
+        f"- **Rebrickable Link**: [Check it out on Rebrickable]({_rebrickable_base_link})\n"
+    )
+
+
     for key, value in data.items():
         if key == "extra":
             # The brick dataset has an extra field
