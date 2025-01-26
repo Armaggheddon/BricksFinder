@@ -205,16 +205,12 @@ if __name__ == "__main__":
                 os.environ[key] = value.strip("\"")
         _ = os.environ["HF_TOKEN"]
         _ = os.environ["GEMINI_API_KEY"]
-    except FileNotFoundError:
-        logger.error("No .env file found, did you forget to rename example.env?")
-        logger.info("Setting CREATE_AND_UPLOAD_DATASET to False")
-        CREATE_AND_UPLOAD_DATASET = False
-    except KeyError:
-        logger.error("Check if both HF_TOKEN and GEMINI_API_KEY have been set in the .env file")
+    except (FileNotFoundError, KeyError):
+        logger.error("No .env or variables not found, did you forget to rename example.env?")
         logger.warning("Setting CREATE_AND_UPLOAD_DATASET and CREATE_GEMINI_CAPTIONS to False")
         CREATE_AND_UPLOAD_DATASET = False
         CREATE_GEMINI_CAPTIONS = False
-
+    
     if CREATE_ROOT_PARQUET:
         create_root_parquet()
 
@@ -234,6 +230,7 @@ if __name__ == "__main__":
 
     if CREATE_GEMINI_CAPTIONS:
         utils.CaptionGenerator(
+            api_key=os.environ["GEMINI_API_KEY"],
             dataframe=pd.read_parquet(
                 DATASET_ROOT / "minifigures_no_img.parquet"
             ),

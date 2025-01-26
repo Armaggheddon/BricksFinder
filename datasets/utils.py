@@ -39,6 +39,7 @@ GEMINI_API_KEYS_PATH = Path(__file__).parent / "gemini_api_keys.json"
 class CaptionGenerator:
     def __init__(
         self,
+        api_key: str,
         dataframe: pd.DataFrame = None,
         images_path: Path = None,
         captions_path: Path = None,
@@ -55,12 +56,6 @@ class CaptionGenerator:
         self.images_path = images_path
         self.captions_path = captions_path
 
-        with open(GEMINI_API_KEYS_PATH) as f:
-            api_keys = json.load(f)
-        self.gemini_api_keys = api_keys["gemini_api_keys"]
-
-        logger.info(f"Loaded {len(self.gemini_api_keys)} Gemini API keys.")
-
         self.gemini_api_errors = [
             genai_types.BrokenResponseError,
             genai_types.IncompleteIterationError,
@@ -74,6 +69,18 @@ class CaptionGenerator:
             GEMINI_MINIFIGURE_SYSTEM_PROMPT
             if type == "minifigure"
             else GEMINI_BRICK_SYSTEM_PROMPT
+        )
+
+        genai.configure(api_key=api_key)
+        generation_config = genai.types.GenerationConfig(
+            candidate_count=1,
+            max_output_tokens=75,
+            temperature=1.0,
+            top_p=0.95
+        )
+        self.model = genai.GenerativeModel(
+            model_name="gemini-1.5-flash-002",
+            generation_config=generation_config
         )
     
     def caption(self, resume: bool = True):
@@ -115,24 +122,12 @@ class CaptionGenerator:
         logger.success("Finished generating captions.")
 
     def _caption_img(self, idx: int, img: Image.Image):
-        genai.configure(api_key=self.gemini_api_keys[self.api_key_idx])
-        generation_config = genai.types.GenerationConfig(
-            candidate_count=1,
-            max_output_tokens=75,
-            temperature=1.0,
-            top_p=0.95
-        )
-        model = genai.GenerativeModel(
-            model_name="gemini-1.5-flash-002",
-            generation_config=generation_config
-        )
-
         retry_count = 0
         max_retries = 3
         is_success = False
         while not is_success and retry_count < max_retries:
             try:
-                response = model.generate_content(
+                response = self.model.generate_content(
                     contents=[self.prompt, img],
                 )
                 if not response.text:
@@ -149,11 +144,8 @@ class CaptionGenerator:
                 is_success = True
             except Exception as e:
                 if type(e) in self.gemini_api_errors:
+                    logger.error(f"API KEY timeout. Waiting for 10 seconds...")
                     time.sleep(10)
-                    # rotate api key
-                    self.api_key_idx = (self.api_key_idx + 1) % len(self.gemini_api_keys)
-                    genai.configure(api_key=self.gemini_api_keys[self.api_key_idx])
-                    logger.error(f"Failed generating caption. Rotating to API[{self.api_key_idx}]")
                 else:
                     retry_count += 1
         

@@ -253,6 +253,7 @@ if __name__ == "__main__":
 
     if CREATE_GEMINI_CAPTIONS:
         utils.CaptionGenerator(
+            api_key=os.environ["GEMINI_API_KEY"],
             dataframe=pd.read_parquet(
                 DATASET_ROOT / "lego_bricks_no_img.parquet"
             ),
