@@ -49,7 +49,7 @@ BricksFinder combines the magic of LEGO with cutting-edge AI to offer:
 
 - **Custom LEGO Datasets 🧱:** A dataset of LEGO minifigures (completed) and an upcoming dataset for LEGO bricks.
 - **AI-Powered Search 🔍:** Fine-tuned CLIP models enabling intuitive searches via text or images.
-- **User-Friendly Web UI 🌐:** Search for your favorite LEGO pieces with ease, whether you're browsing by description or uploading a photo.
+- **User-Friendly Web UI 🌐:** Search for your favorite LEGO pieces with ease, whether you're browsing by description or uploading a photo. Click on a result to get additional informations about the piece as well as a link to directly bring your search to the Rebrickable website.
 - **Live Demo on Colab 🚀:** Test the functionality instantly using the interactive Google Colab demo!
 
 Discover. Search. Build. BricksFinder makes your LEGO journey smarter and more fun! 🚀✨
