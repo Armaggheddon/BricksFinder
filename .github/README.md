@@ -78,9 +78,9 @@ You can also see the fine-tuned models in action via the Colab live demo! 🚀 <
 ## Web UI 🌐
 The BricksFinder Web UI is ready to go, making it easier than ever to search for LEGO pieces! 🎮✨
 
-- **Search by Text or Image:** Whether you’re describing a piece or uploading an image, find your LEGO minifigure in a flash!
+- **Search by Text or Image:** Whether you’re describing a piece or uploading an image, find your LEGO minifigure or brick in a flash!
 - **Smooth and Fun Experience:** Built with Gradio, the Web UI is designed to be intuitive and user-friendly, ensuring that your LEGO search is a breeze.
-- **Brick Dataset (Coming Soon):** While the minifigure dataset is fully supported, the brick index is currently in development. Stay tuned for updates when the brick search functionality goes live! 🚀
+- **Minifigure and Brick Datasets:** Chose between the LEGO minifigure or brick dataset to search. 
 
 
 Give it a try on the live demo and experience the magic of LEGO search firsthand! 🧱✨ Make sure to select the GPU runtime otherwise you will be waiting for a while ⌚ <a target="_blank" href="https://colab.research.google.com/github/Armaggheddon/BricksFinder/blob/main/live_demo/live_demo.ipynb">
@@ -88,7 +88,7 @@ Give it a try on the live demo and experience the magic of LEGO search firsthand
 </a>
 
 > [!NOTE]
-> The first startup of the Web UI may take a few minutes depending on the hardware used. On colab, using the free Tesla T4 GPU, it takes around 5 minutes for the minifigure dataset. The brick dataset, when ready, will take longer due to the larger size of the dataset. The required models and datasets are also downloaded during the first startup.
+> The first startup of the Web UI may take a few minutes depending on the hardware used. On colab, using the free Tesla T4 GPU, it takes around 5 minutes for the minifigure dataset. The brick dataset, will take ~15 minutes due to the larger size of the dataset. The required models and datasets are also downloaded during the first startup.
 
 > [!TIP]
 > On Colab, unless you save the environment, the data will be lost when closing the notebook. If you plan to reuse the application, make sure to save the environment or download the required files.
@@ -112,13 +112,18 @@ BricksFinder is designed to be easy to use and accessible to everyone! 🚀 it u
         ```bash
         docker compose -f gpu-docker-compose.yml up --build
         ```
+    Additional arguments can be provided to customize the startup:
+    - `--share`: Creates a shared link though gradio to access the Web UI outside your local network. False by default.
+    - `--startup_index=<minifigure|brick>`: The dataset used when starting the Web UI. Default is `minifigure`.
+    - `--rebuild`: Rebuild the index when starting the container. False by default.
+    - `--invalidate_cache`: Invalidate the cached files. This will remove all the downloaded data like the model, the tokenizer and the dataset. It also sets `--rebuild_index` to True. False by default.
 
 3. **Access the Web UI:**
     Once the container is up and running, and all the required models and datasets are downloaded and the index has been built, you can access the Web UI at `http://localhost:8000/`.
 
 
 > [!NOTE]
-> As for the Gradio live demo, the first startup may take a few minutes depending on the hardware used and the available internet speed. However when run locally, this will happen only the first time a specific dataset is used and subsequent runs will use the cached data.
+> As for the Gradio live demo, the first startup may take a few minutes depending on the hardware used and the available internet speed. However when run locally, this will happen only the first time a specific dataset is used and subsequent runs will use the cached data. The cached data will be saved in the `BricksFinder/bricks_finder/vector_indexes` folder.
 
 > [!TIP]
 > When using the GPU container, make sure to have both the latest Nvidia drivers (>= 560 or later) and the latest version of the Nvidia Container Toolkit installed. For more information, refer to the [Installing the NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html).
