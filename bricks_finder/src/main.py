@@ -12,7 +12,55 @@ THIS_PATH = Path(__file__).parent.parent
 VECTOR_INDEX_ROOT = THIS_PATH / "vector_indexes"
 STATIC_RESOURCES = THIS_PATH / "src" / "static"
 
-query_helper = QueryHelper(VECTOR_INDEX_ROOT)
+# Parse command line arguments
+parser = argparse.ArgumentParser()
+parser.add_argument(
+    "--share",
+    action="store_true",
+    default=False,
+    help="Share the interface on a public URL"
+)
+parser.add_argument(
+    "--startup_index",
+    type=str,
+    default="minifigure",
+    choices=["minifigure", "brick"],
+    help="Index to load on startup"
+)
+parser.add_argument(
+    "--rebuild",
+    action="store_true",
+    default=False,
+    help="Rebuild the indexes for both datasets"
+)
+parser.add_argument(
+    "--invalidate_cache",
+    action="store_true",
+    default=False,
+    help=(
+        "Invalidate the cache for the datasets and the models. "
+        "This option also rebuilds the indexes"
+    )
+)
+args = parser.parse_args()
+if args.invalidate_cache:
+    args.rebuild = True
+
+logger.info(f"Share link: {args.share}")
+logger.info(f"Startup index: {args.startup_index}")
+logger.info(f"Rebuild indexes: {args.rebuild}")
+logger.info(f"Invalidate cache: {args.invalidate_cache}")
+
+query_helper = QueryHelper(
+    VECTOR_INDEX_ROOT, 
+    startup_index=IndexType.from_str(args.startup_index),
+    rebuild_indexes=args.rebuild,
+    invalidate_cache=args.invalidate_cache
+)
+
+#############################################################
+#############################################################
+#############################################################
 
 def search(text_query, image_query, index_type, result_count):
     if text_query == "" and image_query is None:
@@ -30,7 +78,17 @@ def dict_to_markdown(data: dict):
     markdown = StringIO()
     markdown.write("### Additional Information\n")
     for key, value in data.items():
-        markdown.write(f"- **{key}**: {value}\n")
+        if key == "extra":
+            # The brick dataset has an extra field
+            # with additional information
+            if isinstance(value, list) and len(value) != 0:
+                markdown.write("- **Extra**:\n")
+                for idx, extra_item in enumerate(value):
+                    markdown.write(f"  - **Item {idx}**:\n")
+                    for k, v in extra_item.items():
+                        markdown.write(f"    - **{k}**: {v}\n")
+        else:
+            markdown.write(f"- **{key}**: {value}\n")
     return markdown.getvalue()
 
 def get_image_info(evt: gr.SelectData):
@@ -74,7 +132,7 @@ with gr.Blocks(css=css) as interface:
             index_radio = gr.Radio(
                 label="Search for", 
                 choices=[IndexType.MINIFIGURE.value, IndexType.BRICK.value], 
-                value=IndexType.MINIFIGURE.value, 
+                value=IndexType.from_str(args.startup_index).value, 
                 interactive=True
             )
             with gr.Accordion(label="More options", open=False):
@@ -134,46 +192,8 @@ with gr.Blocks(css=css) as interface:
         outputs=[additional_information]
     )
 
-    def index_radio_change(radio_value):
-        if radio_value == IndexType.BRICK.value:
-            gr.Warning(message="Brick index is not available yet", duration=3)
-    index_radio.input(
-        index_radio_change,
-        inputs=index_radio
-    )
-
 
 if __name__ == "__main__":
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--share",
-        action="store_true",
-        default=False,
-        help="Share the interface on a public URL"
-    )
-    parser.add_argument(
-        "--startup_index",
-        type=str,
-        default="minifigure",
-        choices=["minifigure", "brick"],
-        help="Index to load on startup"
-    )
-    parser.add_argument(
-        "--rebuild",
-        action="store_true",
-        default=False,
-        help="Rebuild the indexes for both datasets"
-    )
-    args = parser.parse_args()
-    logger.info(f"Share link: {args.share}")
-    logger.info(f"Startup index: {args.startup_index}")
-    logger.info(f"Rebuild indexes: {args.rebuild}")
-
-    query_helper.load_default_index(
-        index_type=IndexType.from_str(args.startup_index),
-        rebuild_indexes=args.rebuild
-    )
 
     interface.launch(
         server_name="0.0.0.0",
