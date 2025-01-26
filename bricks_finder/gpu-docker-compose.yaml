@@ -6,7 +6,13 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./vector_indexes:/vector_indexes
+      - "./vector_indexes:/bricks_finder/vector_indexes"
+    # Available arguments are:
+    # --share : Creates a shared gradio demo that can be accessed externally
+    # --startup_index=<minifigure, brick> : Specifies the index to use for the startup
+    # --rebuild : Rebuilds the faiss index
+    # --invalidate_cache : Invalidates the cache re-downloading the data from huggingface
+    command: python3 src/main.py --startup_index=brick
     ulimits:
       memlock: -1
       stack: 67108864
