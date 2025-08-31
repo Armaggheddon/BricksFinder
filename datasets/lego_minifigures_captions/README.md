@@ -30,7 +30,7 @@ The data has been collected from the [Rebrickable](https://rebrickable.com/downl
 Again a massive shoutout and thanks goes to the [Rebrickable](https://rebrickable.com/) team for providing all the data and images for the LEGO minifigures, and more!
 
 > [!TIP]
-> This dataset is also available on the [Hugging Face Datasets Hub](https://huggingface.co/datasets/armaggheddon97/lego_minifigure_captions).
+> This dataset is also available on the [Hugging Face Datasets Hub](https://huggingface.co/datasets/Armaggheddon/lego_minifigure_captions).
 
 ## Usage with pandas
 Using this dataset with pandas requires the `pyarrow` library to be installed. Also the parquet files have to be downloaded.
@@ -50,7 +50,7 @@ print(df.head())
 from datasets import load_dataset
 
 # Load the dataset in streaming mode
-ds = load_dataset("armaggheddon97/lego_minifigure_captions", split="train", streaming=True)
+ds = load_dataset("Armaggheddon/lego_minifigure_captions", split="train", streaming=True)
 
 # Print the dataset info
 print(next(iter(ds)))
