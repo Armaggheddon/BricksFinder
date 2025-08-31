@@ -192,7 +192,7 @@ def upload_dataset_to_hf(dataframe: pd.DataFrame):
     hf_dataset = Dataset.from_parquet(str(DATASET_PARQUET_PATH / "lego_bricks.parquet"))
     hf_dataset.save_to_disk(str(DATASET_PARQUET_PATH))
     hf_dataset.push_to_hub(
-        repo_id="armaggheddon97/lego_brick_captions",
+        repo_id="Armaggheddon/lego_brick_captions",
         split="train",
         max_shard_size="200MB",
         commit_message="Initial commit",
