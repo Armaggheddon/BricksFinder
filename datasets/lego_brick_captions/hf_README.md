@@ -130,9 +130,9 @@ print(df.head())
 from datasets import load_dataset
 
 # Load the dataset in streaming mode
-streaming_ds = load_dataset("armaggheddon97/lego_brick_captions", split="train", streaming=True)
+streaming_ds = load_dataset("Armaggheddon/lego_brick_captions", split="train", streaming=True)
 # Load the dataset normally
-ds = load_dataset("armaggheddon97/lego_brick_captions", split="train")
+ds = load_dataset("Armaggheddon/lego_brick_captions", split="train")
 
 # Print the dataset info
 print(next(iter(ds)))
