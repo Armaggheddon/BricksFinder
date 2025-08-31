@@ -176,7 +176,7 @@ def upload_dataset_to_hf(dataframe: pd.DataFrame):
     hf_dataset = Dataset.from_parquet(parquet_table)
     hf_dataset.save_to_disk(DATASET_PARQUET_PATH)
     hf_dataset.push_to_hub(
-        repo_id="armaggheddon97/lego_minifigure_captions",
+        repo_id="Armaggheddon/lego_minifigure_captions",
         split="train",
         max_shard_size="200MB",
         commit_message="Initial commit",
