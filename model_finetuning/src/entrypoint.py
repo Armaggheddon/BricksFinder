@@ -14,8 +14,8 @@ BRICKS_FINETUNE_ROOT = FINETUNE_RESULTS_ROOT / "brick_finetune"
 
 MINIFIG_CONFIG = {
     "repository_name": "clip-vit-base-patch32_lego-minifigure",
-    "model_repo_id": "armaggheddon97/clip-vit-base-patch32_lego-minifigure",
-    "dataset_id": "armaggheddon97/lego_minifigure_captions",
+    "model_repo_id": "Armaggheddon/clip-vit-base-patch32_lego-minifigure",
+    "dataset_id": "Armaggheddon/lego_minifigure_captions",
     "finetune_results_path": (
         MINIFIG_FINETUNE_ROOT / "clip-vit-base-patch32_lego-minifigure"
     ),
@@ -24,8 +24,8 @@ MINIFIG_CONFIG = {
 }
 BRICKS_CONFIG = {
     "repository_name": "clip-vit-base-patch32_lego-brick",
-    "model_repo_id": "armaggheddon97/clip-vit-base-patch32_lego-brick",
-    "dataset_id": "armaggheddon97/lego_brick_captions",
+    "model_repo_id": "Armaggheddon/clip-vit-base-patch32_lego-brick",
+    "dataset_id": "Armaggheddon/lego_brick_captions",
     "finetune_results_path": (
         BRICKS_FINETUNE_ROOT / "clip-vit-base-patch32_lego-brick"
     ),
