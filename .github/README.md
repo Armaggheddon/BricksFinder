@@ -58,8 +58,8 @@ Discover. Search. Build. BricksFinder makes your LEGO journey smarter and more f
 ## Datasets 🧱
 BricksFinder relies on carefully crafted datasets to power its search capabilities:
 
-- **Minifigure Dataset:** A comprehensive dataset of LEGO minifigures. It includes images with the Rebrickable caption and a long caption generated using Gemini-1.5-Flash(002). The dataset is available on [HuggingFace datasets](https://huggingface.co/datasets/armaggheddon97/lego_minifigure_captions). More details can be found in the dedicated [README](../datasets/lego_minifigures_captions/README.md).
-- **Brick Dataset:** A dataset containing LEGO bricks. It includes the images with the Rebrickable caption and a long caption generated using Gemini-1.5-Flash(002). Additional informations about the piece are also present, like the color. The dataset is available on [HuggingFace datasets](https://huggingface.co/datasets/armaggheddon97/lego_brick_captions). More details can be found in the dedicated [README](../datasets/lego_brick_captions/README.md).
+- **Minifigure Dataset:** A comprehensive dataset of LEGO minifigures. It includes images with the Rebrickable caption and a long caption generated using Gemini-1.5-Flash(002). The dataset is available on [HuggingFace datasets](https://huggingface.co/datasets/Armaggheddon/lego_minifigure_captions). More details can be found in the dedicated [README](../datasets/lego_minifigures_captions/README.md).
+- **Brick Dataset:** A dataset containing LEGO bricks. It includes the images with the Rebrickable caption and a long caption generated using Gemini-1.5-Flash(002). Additional informations about the piece are also present, like the color. The dataset is available on [HuggingFace datasets](https://huggingface.co/datasets/Armaggheddon/lego_brick_captions). More details can be found in the dedicated [README](../datasets/lego_brick_captions/README.md).
 
 
 A massive shoutout to the [Rebrickable](https://rebrickable.com/) team for providing the data and images for the LEGO minifigures and bricks!
@@ -68,8 +68,8 @@ A massive shoutout to the [Rebrickable](https://rebrickable.com/) team for provi
 ## Model Fine-Tuning 🧠
 BricksFinder takes advantage of two fine-tuned CLIP model (ViT-B/32) to power its search capabilities:
 
-- `clip-vit-base-patch32_lego-minifigure`: The model has been fine-tuned on the LEGO minifigure dataset, available on [HuggingFace](https://huggingface.co/armaggheddon97/clip-vit-base-patch32_lego-minifigure).
-- `clip-vit-base-patch32_lego-brick`: The model has been fine-tuned on the LEGO brick dataset available on [HuggingFace](https://huggingface.co/armaggheddon97/clip-vit-base-patch32_lego-brick).
+- `clip-vit-base-patch32_lego-minifigure`: The model has been fine-tuned on the LEGO minifigure dataset, available on [HuggingFace](https://huggingface.co/Armaggheddon/clip-vit-base-patch32_lego-minifigure).
+- `clip-vit-base-patch32_lego-brick`: The model has been fine-tuned on the LEGO brick dataset available on [HuggingFace](https://huggingface.co/Armaggheddon/clip-vit-base-patch32_lego-brick).
 
 You can also see the fine-tuned models in action via the Colab live demo! 🚀 <a target="_blank" href="https://colab.research.google.com/github/Armaggheddon/BricksFinder/blob/main/live_demo/live_demo.ipynb">
   <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
