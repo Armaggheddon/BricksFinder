@@ -2,7 +2,7 @@
 library_name: transformers
 license: mit
 datasets:
-- armaggheddon97/lego_brick_captions
+- Armaggheddon/lego_brick_captions
 language:
 - en
 base_model:
@@ -14,7 +14,7 @@ pipeline_tag: zero-shot-classification
 
 ## Model Details
 
-This model is a finetuned version of the `openai/clip-vit-base-patch32` CLIP (Contrastive Language-Image Pretraining) model on the [`lego_brick_captions`](https://huggingface.co/datasets/armaggheddon97/lego_brick_captions), specialized for matching images of Lego bricks with their corresponding textual description.
+This model is a finetuned version of the `openai/clip-vit-base-patch32` CLIP (Contrastive Language-Image Pretraining) model on the [`lego_brick_captions`](https://huggingface.co/datasets/Armaggheddon/lego_brick_captions), specialized for matching images of Lego bricks with their corresponding textual description.
 
 > [!NOTE] 
 > If you are interested on the code used refer to the finetuning script on my [GitHub](https://github.com/Armaggheddon/BricksFinder/blob/main/model_finetuning/src/finetune.py)
@@ -34,7 +34,7 @@ Perfect for LEGO enthusiasts, builders, or anyone who loves a good ol’ treasur
 
 ## Model Description
 
-- **Developed by:** The base model has been developed by OpenAI and the finetuned model has been developed by me, [armaggheddon97](https://huggingface.co/armaggheddon97).
+- **Developed by:** The base model has been developed by OpenAI and the finetuned model has been developed by me, [Armaggheddon](https://huggingface.co/Armaggheddon).
 - **Model type:** The model is a CLIP (Contrastive Language-Image Pretraining) model.
 - **Language:** The model is expects English text as input.
 - **License:** The model is licensed under the MIT license.
@@ -48,21 +48,21 @@ Perfect for LEGO enthusiasts, builders, or anyone who loves a good ol’ treasur
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    model = CLIPModel.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-brick", device_map="auto").to(device)
-    processor = CLIPProcessor.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-brick", device_map="auto").to(device)
+    model = CLIPModel.from_pretrained("Armaggheddon/clip-vit-base-patch32_lego-brick", device_map="auto").to(device)
+    processor = CLIPProcessor.from_pretrained("Armaggheddon/clip-vit-base-patch32_lego-brick", device_map="auto").to(device)
     ```
 - Using `Auto` classes:
     ```python
     from transformers import AutoModelForZeroShotImageClassification, AutoProcessor
 
-    model = AutoModelForZeroShotImageClassification.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-brick")
-    processor = AutoProcessor.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-brick")
+    model = AutoModelForZeroShotImageClassification.from_pretrained("Armaggheddon/clip-vit-base-patch32_lego-brick")
+    processor = AutoProcessor.from_pretrained("Armaggheddon/clip-vit-base-patch32_lego-brick")
     ```
 - Using with `pipeline`:
     ```python
     from transformers import pipeline
 
-    model = "armaggheddon97/clip-vit-base-patch32_lego-brick"
+    model = "Armaggheddon/clip-vit-base-patch32_lego-brick"
     clip_classifier = pipeline("zero-shot-image-classification", model=model)
     ```
 
@@ -72,8 +72,8 @@ The provided model is in float32 precision. To load the model in float16 precisi
 ```python
 from transformers import CLIPProcessor, CLIPModel
 
-model = CLIPModel.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-brick", dtype=torch.float16)
-processor = CLIPProcessor.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-brick")
+model = CLIPModel.from_pretrained("Armaggheddon/clip-vit-base-patch32_lego-brick", dtype=torch.float16)
+processor = CLIPProcessor.from_pretrained("Armaggheddon/clip-vit-base-patch32_lego-brick")
 ```
 
 or alternatively using `torch` directly with:
@@ -81,7 +81,7 @@ or alternatively using `torch` directly with:
 import torch
 from transformers import CLIPModel
 
-model = CLIPModel.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-brick")
+model = CLIPModel.from_pretrained("Armaggheddon/clip-vit-base-patch32_lego-brick")
 model_fp16 = model.to(torch.float16)
 ```
 
@@ -95,8 +95,8 @@ model_fp16 = model.to(torch.float16)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    model = CLIPModel.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-brick", device_map="auto").to(device)
-    tokenizer = CLIPTokenizerFast.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-brick")
+    model = CLIPModel.from_pretrained("Armaggheddon/clip-vit-base-patch32_lego-brick", device_map="auto").to(device)
+    tokenizer = CLIPTokenizerFast.from_pretrained("Armaggheddon/clip-vit-base-patch32_lego-brick")
 
     text = ["a photo of a lego brick"]
     tokens = tokenizer(text, return_tensors="pt", padding=True).to(device)
@@ -110,8 +110,8 @@ model_fp16 = model.to(torch.float16)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
-    model = CLIPModel.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-brick", device_map="auto").to(device)
-    processor = CLIPProcessor.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-brick", device_map="auto").to(device)
+    model = CLIPModel.from_pretrained("Armaggheddon/clip-vit-base-patch32_lego-brick", device_map="auto").to(device)
+    processor = CLIPProcessor.from_pretrained("Armaggheddon/clip-vit-base-patch32_lego-brick", device_map="auto").to(device)
 
     image = Image.open("path_to_image.jpg")
     inputs = processor(images=image, return_tensors="pt").to(device)
@@ -127,10 +127,10 @@ from datasets import load_dataset
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
-model = CLIPModel.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-brick", device_map="auto").to(device)
-processor = CLIPProcessor.from_pretrained("armaggheddon97/clip-vit-base-patch32_lego-brick", device_map="auto").to(device)
+model = CLIPModel.from_pretrained("Armaggheddon/clip-vit-base-patch32_lego-brick", device_map="auto").to(device)
+processor = CLIPProcessor.from_pretrained("Armaggheddon/clip-vit-base-patch32_lego-brick", device_map="auto").to(device)
 
-dataset = load_dataset("armaggheddon97/lego_brick_captions", split="test")
+dataset = load_dataset("Armaggheddon/lego_brick_captions", split="test")
 
 captions = [
     "a photo of a lego brick with a 2x2 plate",
